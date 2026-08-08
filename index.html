@@ -274,6 +274,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 .eb-days-label{font-size:9.5px;text-transform:uppercase;opacity:.85;font-weight:700;}
 .pri-filterrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 .syl-stat-row{display:flex;gap:8px;margin-bottom:12px;}
+.home-stat-scroll{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 10px;margin-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scrollbar-width:thin;}
+.hw-pending-chip{width:min(230px,55%);display:flex;align-items:center;gap:9px;padding:10px 12px;margin-bottom:14px;cursor:pointer;}
+.hw-pending-badge{color:#fff;font-weight:800;font-size:12px;min-width:24px;height:24px;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0 7px;flex-shrink:0;}
+.home-stat-scroll::-webkit-scrollbar{height:5px;}
+.home-stat-scroll .card{flex:0 0 auto;width:180px;scroll-snap-align:start;}
+@media(min-width:900px){.home-stat-scroll{overflow-x:visible;} .home-stat-scroll .card{flex:1;width:auto;}}
 .syl-stat{flex:1;min-width:0;background:var(--card);border-radius:14px;padding:10px 8px;border:1px solid var(--line);text-align:center;}
 .syl-stat .lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--sub);font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .syl-stat .val{font-size:19px;font-weight:700;font-family:'Fredoka',sans-serif;line-height:1;}
@@ -986,8 +992,6 @@ function pageToday(name){
 
   <div class="quote-card">💭 ${todaysQuote()}</div>
 
-  ${todoCardHTML()}
-
   <div class="card tint-violet" style="margin-bottom:14px;display:flex;align-items:center;gap:16px;">
     <div style="flex-shrink:0;">
       <div class="stat-label">Overall completion${state.profile.group!=='BOTH'? ` · ${GROUP_LABELS[state.profile.group]}`:''}</div>
@@ -997,7 +1001,7 @@ function pageToday(name){
     <div style="flex:1;"><div class="progress-track" style="height:10px;"><div class="progress-fill" style="width:${overallPct}%;"></div></div></div>
   </div>
 
-  <div class="grid cols-4">
+  <div class="home-stat-scroll">
     <div class="card tint-amber">
       <div class="stat-label">Days to exam</div>
       <div class="stat-num">${dte===null?'—':dte}</div>
@@ -1028,6 +1032,8 @@ function pageToday(name){
         <button class="btn sm" onclick="resumeSession('${s.id}')">Resume</button>
       </div>`).join('') : `<div class="empty" style="padding:20px 0;">Nothing in progress</div>`}
   </div>
+
+  ${todoCardHTML()}
 
   ${wellnessCardHTML()}
 
@@ -1763,6 +1769,37 @@ function hwStatus(e){
   if(comp>0) return 'in-progress';
   return 'pending';
 }
+function pendingHWQuestions(){
+  // Total unfinished questions across every homework entry, any subject — recomputed fresh
+  // on every render() call, so it reflects add/edit/delete/complete immediately.
+  return state.homework.reduce((sum,e)=>{
+    const total = Number(e.totalQuestions)||0, comp = Number(e.completedQuestions)||0;
+    return sum + Math.max(0, total-comp);
+  }, 0);
+}
+function showPendingHWPopup(){
+  const pending = state.homework.filter(e=>hwStatus(e)!=='done');
+  openModal(`
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h2>📝 Pending homework</h2>
+    <p style="color:var(--sub);margin-top:-6px;">${pendingHWQuestions()} question${pendingHWQuestions()===1?'':'s'} left across ${pending.length} entr${pending.length===1?'y':'ies'}</p>
+    ${pending.length? `<div style="max-height:50vh;overflow:auto;margin:10px 0;">
+      ${pending.map(e=>{
+        const total = Number(e.totalQuestions)||0, comp = Number(e.completedQuestions)||0;
+        const left = Math.max(0,total-comp);
+        return `<div class="list-row">
+          <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
+          <div style="flex:1;min-width:0;">
+            <b>${SUBJECTS[e.subject].name}</b>${e.chapter? ' · '+e.chapter:''}
+            <br><span style="color:var(--sub);font-size:12.5px;">${comp}/${total} done · ${left} left</span>
+          </div>
+          <button class="btn ghost sm" onclick="hwMarkDone('${e.id}');showPendingHWPopup();">Mark done</button>
+        </div>`;
+      }).join('')}
+    </div>` : `<div class="empty" style="padding:20px 0;">Nothing pending — you're all caught up 🎉</div>`}
+    <button class="btn" style="width:100%;margin-top:6px;" onclick="closeModal();go('hwlog');">Open full Homework Log →</button>
+  `);
+}
 function hwSetSubj(s){ hwSubjFilter=s; render(); }
 function hwToggleForm(){ hwShowForm=!hwShowForm; render(); }
 function hwSetView(v){ hwView=v; render(); }
@@ -2053,10 +2090,9 @@ function todoCardHTML(){
   const dueHW = hwDueOrOverdue();
   const upcomingHW = hwUpcoming().slice(0,3);
   const totalDue = dueRev.length + dueHW.length;
-  if(totalDue===0 && upcomingHW.length===0) return '';
   return `
   <div class="todo-card">
-    <div class="todo-hd">📝 To-Do <span class="hint">${totalDue} due now</span></div>
+    <div class="todo-hd">📝 To-Do & Homework Due <span class="hint">${totalDue} due now</span></div>
     ${dueHW.map(e=>`
       <div class="todo-row">
         <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
@@ -2078,7 +2114,10 @@ function todoCardHTML(){
           <button class="btn sm ghost" onclick="addHWToPhone('${e.id}')">📅 Add to phone</button>
         </div>`).join('')}
     ` : ''}
-    ${totalDue===0? `<div style="font-size:12.5px;color:var(--sub);padding:6px 0;">Nothing due right now — nice.</div>` : ''}
+    ${totalDue===0? `<div style="font-size:12.5px;color:var(--sub);padding:6px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <span>${state.homework.length===0? 'No homework logged yet.' : 'Nothing due right now — nice.'}</span>
+      ${state.homework.length===0? `<button class="btn ghost sm" onclick="go('hwlog')">+ Add homework</button>` : ''}
+    </div>` : ''}
   </div>`;
 }
 /* "Add to phone" — generates a standard .ics calendar file for the homework's due date.
@@ -2380,8 +2419,15 @@ function pageDashboard(){
   const minDelta = thisWk.minutes - lastWk.minutes;
   const chDelta = thisWk.chaptersDone - lastWk.chaptersDone;
   const weak = weakTopics(keys, 5);
+  const pendingHW = pendingHWQuestions();
   return `
   <div class="topbar"><div class="greet"><h1>Dashboard</h1><p>Your whole prep at a glance${state.profile.group!=='BOTH'?` — showing ${GROUP_LABELS[state.profile.group]}`:''}.</p></div></div>
+
+  <div class="card hw-pending-chip" onclick="showPendingHWPopup()">
+    <div style="font-size:19px;flex-shrink:0;">📝</div>
+    <div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pending homework</div>
+    <div class="hw-pending-badge" style="background:${pendingHW>0?'#D64545':'#1D9C63'};">${pendingHW}</div>
+  </div>
 
   <div class="weekly-review-card">
     <div class="wr-hd">📅 Weekly review <span class="hint" style="color:#C9C0FF;">last 7 days vs the 7 before</span></div>
@@ -2405,9 +2451,9 @@ function pageDashboard(){
 
   <div class="grid cols-4">
     <div class="card tint-violet"><div class="stat-label">Overall progress</div><div class="stat-num">${overallPct}%</div><div class="stat-sub">${ss.done}/${ss.total} chapters first-read</div></div>
-    <div class="card"><div class="stat-label" style="color:var(--sub)">Total hours</div><div class="stat-num">${minToHM(totalMinutes())}</div><div class="stat-sub" style="color:var(--sub)">priority-weighted readiness ${priorityReadinessPct()}%</div></div>
     <div class="card" style="background:#FFEDF4;border:none;"><div class="stat-label" style="color:#C0356E">Streak</div><div class="stat-num" style="color:#C0356E">${currentStreak()} days</div></div>
     <div class="card tint-amber"><div class="stat-label">Days to exam</div><div class="stat-num">${daysToExam()===null?'—':daysToExam()}</div></div>
+    <div class="card"><div class="stat-label" style="color:var(--sub)">Total hours</div><div class="stat-num">${minToHM(totalMinutes())}</div><div class="stat-sub" style="color:var(--sub)">priority-weighted readiness ${priorityReadinessPct()}%</div></div>
     <div class="card" style="background:#E8F6EF;border:none;grid-column:span 1;"><div class="stat-label" style="color:#1D9C63;">Days studied</div><div class="stat-num" style="color:#1D9C63;">${daysStudiedCount()}</div></div>
   </div>
 
