@@ -189,7 +189,27 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
   .tabbar-mobile button{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--sub);font-weight:700;padding:4px 8px;flex:1;}
   .tabbar-mobile button.active{color:var(--violet);}
   .tabbar-mobile .ic{font-size:19px;}
+  /* iOS/Android auto-zooms the page when a focused input has font-size under 16px — this was
+     the main cause of the janky mobile feel. Force 16px only on touch-width screens so desktop
+     keeps its tighter 14px look. */
+  input[type=text],input[type=number],input[type=date],select,textarea{font-size:16px;}
+  .hw-rev-split{grid-template-columns:1fr;}
 }
+/* ---------- HOMEWORK + REVISION SPLIT PANEL (replaces the old "In progress" tab) ---------- */
+.hw-rev-split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid var(--violet);border-radius:16px;overflow:hidden;margin-bottom:16px;}
+.hw-rev-col{background:var(--card);padding:14px 16px;min-width:0;}
+.hw-rev-col+.hw-rev-col{border-left:1px solid var(--line);}
+@media(max-width:900px){.hw-rev-col+.hw-rev-col{border-left:none;border-top:1px solid var(--line);}}
+.hw-rev-hd{font-size:12.5px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.hw-rev-row{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);}
+.hw-rev-row:last-child{border-bottom:none;}
+.hw-meta-small{font-size:10.5px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+.hw-qcount{color:var(--coral);font-weight:800;font-size:11.5px;}
+.notif-badge{background:var(--coral);color:#fff;font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 8px;cursor:pointer;}
+.notif-collapsed{font-size:12px;color:var(--sub);padding:6px 0;cursor:pointer;font-weight:700;}
+.notif-collapsed b{color:var(--ink);}
+.notif-chip-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.notif-chip{background:var(--violet-soft);color:var(--violet-deep);font-size:11px;font-weight:700;border-radius:999px;padding:4px 10px;}
 .more-sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .more-sheet-grid .navlink{background:var(--violet-soft);border-radius:14px;justify-content:flex-start;}
 .more-sheet-label{font-size:10.5px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin:14px 2px 8px;}
@@ -497,6 +517,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
   <div class="ai-suggest-row" id="aiSuggestRow"></div>
   <div class="ai-input-row">
     <textarea id="aiInput" rows="1" placeholder="Ask about a concept, revision plan, exam strategy..."></textarea>
+    <button class="btn ghost" id="aiSearchBtn" title="Search this on the web instead — no sign-in needed" onclick="quickWebSearch()">🔍</button>
     <button class="btn" id="aiSendBtn">➤</button>
   </div>
 </div>
@@ -1164,14 +1185,15 @@ function pageToday(name){
     </div>
   </div>
 
-  <div class="section-title">In progress <span class="hint">${inprog.length} to resume</span></div>
+  ${inprog.length? `
+  <div class="section-title">Resume <span class="hint">${inprog.length} unfinished session${inprog.length===1?'':'s'}</span></div>
   <div class="card">
-    ${inprog.length? inprog.map(s=>`
+    ${inprog.map(s=>`
       <div class="list-row">
         <div style="flex:1"><b>${SUBJECTS[s.subject].name}</b> · ${s.chapter||''}<br><span class="hint" style="color:var(--sub);font-size:12.5px">${ACTIVITIES.find(a=>a.id===s.activity).label} · started ${new Date(s.start).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span></div>
         <button class="btn sm" onclick="resumeSession('${s.id}')">Resume</button>
-      </div>`).join('') : `<div class="empty" style="padding:20px 0;">Nothing in progress</div>`}
-  </div>
+      </div>`).join('')}
+  </div>` : ''}
 
   ${todoCardHTML()}
 
@@ -2284,42 +2306,74 @@ function hwUpcoming(){
   return state.homework.filter(e=> e.dueDate && hwStatus(e)!=='done' && e.dueDate>today)
     .sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
 }
-/* Persistent To-Do card on the Today page — the always-visible version of the daily popup,
-   so due items don't disappear once you've dismissed the reminder for the day. */
+/* Persistent Homework/Revision split panel on the Today page — replaces the old always-open
+   "In progress" tile. Two halves side-by-side (stacked on mobile): homework due on the left,
+   revision reminders on the right. Either half collapses into an iOS-style notification badge
+   once it has more than 4 items, showing just a count + chapter/subject names; tap to expand. */
+let hwPanelExpanded = false;
+let revPanelExpanded = false;
+function toggleHWPanel(){ hwPanelExpanded = !hwPanelExpanded; render(); }
+function toggleRevPanel(){ revPanelExpanded = !revPanelExpanded; render(); }
 function todoCardHTML(){
   const dueRev = revisionsDue();
   const dueHW = hwDueOrOverdue();
-  const upcomingHW = hwUpcoming().slice(0,3);
-  const totalDue = dueRev.length + dueHW.length;
+  const COLLAPSE_AT = 4;
+
+  const hwCollapsed = !hwPanelExpanded && dueHW.length > COLLAPSE_AT;
+  const revCollapsed = !revPanelExpanded && dueRev.length > COLLAPSE_AT;
+
+  const hwRowHTML = (e)=>`
+    <div class="hw-rev-row">
+      <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color};margin-top:3px;"></span>
+      <div style="flex:1;min-width:0;">
+        <div class="hw-meta-small">${e.subject}</div>
+        <div style="font-size:12.5px;font-weight:700;">${e.topic}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;">
+          <span style="font-size:11px;color:${e.dueDate<todayISO()?'#D64545':'var(--sub)'};font-weight:${e.dueDate<todayISO()?'700':'400'};">${e.dueDate<todayISO()?'Overdue since':'Due'} ${fmtDate(e.dueDate)}</span>
+          ${e.questionRange? `<span class="hw-qcount">${e.questionRange}</span>` : (e.totalQuestions? `<span class="hw-qcount">${e.completedQuestions||0}/${e.totalQuestions} Qs</span>` : '')}
+        </div>
+      </div>
+      <button class="btn sm" onclick="hwMarkDone('${e.id}');render();">✓</button>
+    </div>`;
+
+  const revRowHTML = (r)=>`
+    <div class="hw-rev-row">
+      <span class="hw-subj-dot" style="background:${SUBJECTS[r.subject].color};margin-top:3px;"></span>
+      <div style="flex:1;min-width:0;">
+        <div class="hw-meta-small">${r.subject}</div>
+        <div style="font-size:12.5px;font-weight:700;">${r.chapter.name}</div>
+        <div style="font-size:11px;color:var(--sub);margin-top:2px;">${stageDayLabel(r.stage)} revision · due ${fmtDate(r.dueDate)}</div>
+      </div>
+      <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})" title="Start timer">▶</button>
+      <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});render();">✓</button>
+    </div>`;
+
+  const hwBody = dueHW.length===0
+    ? `<div style="font-size:12px;color:var(--sub);padding:6px 0;">${state.homework.length===0? 'No homework logged yet.' : 'Nothing due — nice.'}</div>`
+    : hwCollapsed
+      ? `<div class="notif-collapsed" onclick="toggleHWPanel()">🔔 <b>${dueHW.length} homework items</b> due — tap to view
+           <div class="notif-chip-list">${dueHW.slice(0,8).map(e=>`<span class="notif-chip">${e.subject}</span>`).join('')}</div>
+         </div>`
+      : dueHW.map(hwRowHTML).join('') + (dueHW.length>COLLAPSE_AT? `<div class="notif-collapsed" onclick="toggleHWPanel()" style="text-align:center;">▲ collapse</div>` : '');
+
+  const revBody = dueRev.length===0
+    ? `<div style="font-size:12px;color:var(--sub);padding:6px 0;">Nothing due for revision.</div>`
+    : revCollapsed
+      ? `<div class="notif-collapsed" onclick="toggleRevPanel()">🔔 <b>${dueRev.length} revisions</b> due — tap to view
+           <div class="notif-chip-list">${dueRev.slice(0,8).map(r=>`<span class="notif-chip">${r.chapter.name}</span>`).join('')}</div>
+         </div>`
+      : dueRev.map(revRowHTML).join('') + (dueRev.length>COLLAPSE_AT? `<div class="notif-collapsed" onclick="toggleRevPanel()" style="text-align:center;">▲ collapse</div>` : '');
+
   return `
-  <div class="todo-card">
-    <div class="todo-hd">📝 Homework Due Today <span class="hint">${totalDue} pending</span></div>
-    ${dueHW.map(e=>`
-      <div class="todo-row">
-        <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
-        <div style="flex:1;min-width:0;"><b>${e.topic}</b><div style="font-size:11px;color:${e.dueDate<todayISO()?'#D64545':'var(--sub)'};font-weight:${e.dueDate<todayISO()?'700':'400'};">${e.dueDate<todayISO()?'Overdue since':'Due'} ${fmtDate(e.dueDate)} · homework</div></div>
-        <button class="btn sm" onclick="hwMarkDone('${e.id}');render();">✓</button>
-      </div>`).join('')}
-    ${dueRev.map(r=>`
-      <div class="todo-row">
-        <span class="hw-subj-dot" style="background:${SUBJECTS[r.subject].color}"></span>
-        <div style="flex:1;min-width:0;"><b>${r.chapter.name}</b><div style="font-size:11px;color:var(--sub);">${stageDayLabel(r.stage)} revision due ${fmtDate(r.dueDate)}</div></div>
-        <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})" title="Start revision timer">▶</button>
-        <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});render();">✓</button>
-      </div>`).join('')}
-    ${upcomingHW.length? `
-      <div class="todo-upcoming-hd">Coming up</div>
-      ${upcomingHW.map(e=>`
-        <div class="todo-row">
-          <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color};opacity:.5;"></span>
-          <div style="flex:1;min-width:0;color:var(--sub);"><b style="color:var(--ink);">${e.topic}</b><div style="font-size:11px;">Due ${fmtDate(e.dueDate)}</div></div>
-          <button class="btn sm ghost" onclick="addHWToPhone('${e.id}')">📅 Add to phone</button>
-        </div>`).join('')}
-    ` : ''}
-    ${totalDue===0? `<div style="font-size:12.5px;color:var(--sub);padding:6px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <span>${state.homework.length===0? 'No homework logged yet.' : 'Nothing due right now — nice.'}</span>
-      ${state.homework.length===0? `<button class="btn ghost sm" onclick="go('hwlog')">+ Add homework</button>` : ''}
-    </div>` : ''}
+  <div class="hw-rev-split">
+    <div class="hw-rev-col">
+      <div class="hw-rev-hd">📝 Homework due ${dueHW.length? `<span class="notif-badge">${dueHW.length}</span>`:''}</div>
+      ${hwBody}
+    </div>
+    <div class="hw-rev-col">
+      <div class="hw-rev-hd">🔁 Revision reminders ${dueRev.length? `<span class="notif-badge">${dueRev.length}</span>`:''}</div>
+      ${revBody}
+    </div>
   </div>`;
 }
 /* "Add to phone" — generates a standard .ics calendar file for the homework's due date.
@@ -2918,18 +2972,36 @@ function pageSettings(){
   <div class="section-title">🧠 AI Study Assistant</div>
   <div class="card" id="aiSettingsCard">
     <div style="font-size:12.5px;color:var(--sub);margin-bottom:10px;line-height:1.6;">
-      Powers the "Ask" chat button in the bottom-right corner. Runs on your own Anthropic API key —
-      get one free at <a href="https://console.anthropic.com" target="_blank" rel="noopener" style="color:var(--violet-deep);font-weight:700;">console.anthropic.com</a>.
-      The key is saved only in this browser (never included in your backup export) and is sent directly
-      from your device to Anthropic when you ask a question — Ca Karo has no server of its own.
+      Powers the chat button in the bottom-right corner. <b>Study Reviewer</b> works instantly, fully offline,
+      with no key and no download — it reads your live progress and gives revision/exam advice.
+      For open-ended concept explanations, add your own free key for Claude, ChatGPT, or Gemini below —
+      it's saved only in this browser (never in your backup export) and sent directly from your device to that provider.
     </div>
     <div class="field">
-      <label class="field-label">Anthropic API key</label>
-      <input type="password" id="aiKeyInput" placeholder="${getAIKey()? '•••••••••••••••••••• (saved)' : 'sk-ant-...'}" autocomplete="off">
+      <label class="field-label">Assistant mode</label>
+      <select id="aiProviderSelect" onchange="onAIProviderSelectChange()">
+        <option value="reviewer" ${(aiProviderDraft||currentAIProvider())==='reviewer'?'selected':''}>🎯 Study Reviewer — offline, instant, no key</option>
+        <option value="free" ${(aiProviderDraft||currentAIProvider())==='free'?'selected':''}>🆓 Free on-device model — downloads once (~300MB), needs network the first time</option>
+        <option value="anthropic" ${(aiProviderDraft||currentAIProvider())==='anthropic'?'selected':''}>Anthropic Claude</option>
+        <option value="openai" ${(aiProviderDraft||currentAIProvider())==='openai'?'selected':''}>OpenAI ChatGPT</option>
+        <option value="gemini" ${(aiProviderDraft||currentAIProvider())==='gemini'?'selected':''}>Google Gemini</option>
+      </select>
+    </div>
+    <div id="aiKeyFieldWrap">
+      ${(() => {
+        const sel = aiProviderDraft || currentAIProvider();
+        if(sel==='reviewer' || sel==='free') return '';
+        const p = AI_PROVIDERS[sel];
+        if(!p) return '';
+        return `<div class="field">
+          <label class="field-label">${p.label} API key <span class="hint">get one free at <a href="${p.consoleUrl}" target="_blank" rel="noopener" style="color:var(--violet-deep);font-weight:700;">${p.consoleHost}</a></span></label>
+          <input type="password" id="aiKeyInput" placeholder="${getProviderKey(sel)? '•••••••••••••••••••• (saved)' : p.placeholder}" autocomplete="off">
+        </div>`;
+      })()}
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn" onclick="saveAIKeyFromSettings()">Save key</button>
-      ${getAIKey()? `<button class="btn ghost" onclick="clearAIKeyFromSettings()">Remove key</button>` : ''}
+      <button class="btn" onclick="saveAIProvider()">Save</button>
+      ${(currentAIProvider()!=='reviewer' && currentAIProvider()!=='free' && getProviderKey(currentAIProvider()))? `<button class="btn ghost" onclick="clearProviderKey('${currentAIProvider()}')">Remove key</button>` : ''}
     </div>
   </div>
 
@@ -3233,24 +3305,31 @@ let aiSending = false;
 let freeModelPipeline = null; // cached transformers.js pipeline, loaded once
 let freeModelLoading = false;
 
-function currentAIProvider(){ return state.settings.aiProvider || 'free'; }
+function currentAIProvider(){ return state.settings.aiProvider || 'reviewer'; }
 function getProviderKey(p){ try{ return localStorage.getItem(AI_PROVIDERS[p].keyStore) || ''; }catch(e){ return ''; } }
 function setProviderKey(p, key){ try{ if(key) localStorage.setItem(AI_PROVIDERS[p].keyStore, key); else localStorage.removeItem(AI_PROVIDERS[p].keyStore); }catch(e){} }
 /* Whether the currently-selected provider is actually ready to answer right now. */
-function aiIsReady(){ const p = currentAIProvider(); return p==='free' ? true : !!getProviderKey(p); }
+function aiIsReady(){ const p = currentAIProvider(); return (p==='free' || p==='reviewer') ? true : !!getProviderKey(p); }
 
-function onAIProviderSelectChange(){ render(); } // just re-render Settings so the right key field shows; nothing saved yet
+let aiProviderDraft = null; // holds the provider picked in the dropdown until Save is pressed
+function onAIProviderSelectChange(){
+  const el = document.getElementById('aiProviderSelect');
+  aiProviderDraft = el ? el.value : null;
+  render();
+}
 function saveAIProvider(){
-  const prov = document.getElementById('aiProviderSelect').value;
-  if(prov!=='free'){
+  const el = document.getElementById('aiProviderSelect');
+  const prov = el ? el.value : currentAIProvider();
+  if(prov!=='free' && prov!=='reviewer'){
     const input = document.getElementById('aiKeyInput');
     const v = input? input.value.trim() : '';
     if(v) setProviderKey(prov, v);
     if(!getProviderKey(prov)){ toast('Enter an API key first'); return; }
   }
   state.settings.aiProvider = prov;
+  aiProviderDraft = null;
   save();
-  toast(prov==='free' ? 'Using the free on-device assistant' : 'Saved — now using '+AI_PROVIDERS[prov].label);
+  toast(prov==='reviewer' ? 'Using the offline Study Reviewer' : prov==='free' ? 'Using the free on-device assistant' : 'Saved — now using '+AI_PROVIDERS[prov].label);
   render();
 }
 function clearProviderKey(p){
@@ -3350,8 +3429,50 @@ async function callGemini(messages, key){
   return (data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
 }
 
+/* ---- Provider: Study Reviewer (pure local logic, no network, no key — this is the "AI reviewer"
+   the student can always rely on. It reads the same progress data as aiContextSummary() and answers
+   from patterns in the question, plus a general progress readout when nothing more specific matches.) ---- */
+function callReviewer(messages){
+  const q = (messages[messages.length-1]?.content||'').toLowerCase();
+  const keys = activeSubjectKeys();
+  const ss = syllabusStats(keys);
+  const dte = daysToExam();
+  const due = revisionsDue();
+  const dueHW = hwDueOrOverdue();
+  const pct = ss.total? Math.round(100*ss.done/ss.total) : 0;
+  const bySubj = keys.map(k=>{
+    const chs = state.chapters[k]; const done = chs.filter(c=>c.firstRead).length;
+    return {key:k, name:SUBJECTS[k].name, pct: chs.length? Math.round(100*done/chs.length):0};
+  }).sort((a,b)=>a.pct-b.pct);
+  const weakest = bySubj.slice(0,2);
+  const streak = currentStreak();
+  const last7 = last7DaysMinutes();
+
+  const lines = [];
+  if(/plan|schedule|week/.test(q)){
+    lines.push(`With ${dte===null?'no exam date set yet':dte+' days to your exam'}, put your next few sessions on ${weakest.map(w=>w.name).join(' and ')||'your weakest subject'} — that's where completion is lowest (${weakest.map(w=>w.name+' '+w.pct+'%').join(', ')}).`);
+    if(due.length) lines.push(`You also have ${due.length} revision${due.length===1?'':'s'} due — clear those first, they're cheap wins that lock in what you already studied.`);
+    if(dueHW.length) lines.push(`${dueHW.length} homework item${dueHW.length===1?'':'s'} ${dueHW.length===1?'is':'are'} due or overdue — fit those in before starting anything new.`);
+  } else if(/behind|cut|late/.test(q)){
+    lines.push(`You're at ${pct}% overall (${ss.done}/${ss.total} chapters). If time is tight, protect first-read + one revision pass on every chapter over chasing 100% depth anywhere — a shallow pass on everything beats mastery on half the syllabus.`);
+    lines.push(`Cut back on chapters you're already strong in (${bySubj.slice(-1).map(w=>w.name+' '+w.pct+'%').join('')||'your strongest subject'}) to free up time for ${weakest.map(w=>w.name).join(' and ')}.`);
+  } else if(/motivat|tired|stuck|stress|give up/.test(q)){
+    lines.push(streak>0 ? `You're on a ${streak}-day streak — that's real momentum, don't break it over one hard day.` : `No streak running right now — a single 25-minute session today restarts one. Small and consistent beats long and rare.`);
+    lines.push(`Last 7 days you've put in ${minToHM(last7)} total. Progress compounds — one more session moves the needle even when it doesn't feel like it.`);
+  } else if(/quiz|test me/.test(q)){
+    lines.push(`I can't generate custom quiz questions offline — for that, switch to Anthropic/OpenAI/Gemini in Settings → AI Study Assistant with your own key. In the meantime, use the Tests tab to log a mock and get pattern-based feedback on it.`);
+  } else if(/progress|review|how am i doing|status/.test(q) || !lines.length){
+    lines.push(`Overall you're at ${pct}% (${ss.done}/${ss.total} chapters)${dte!==null? `, with ${dte} days left`:''}.`);
+    lines.push(`Weakest right now: ${weakest.map(w=>w.name+' ('+w.pct+'%)').join(', ')||'n/a'}.`);
+    lines.push(`${due.length} revision${due.length===1?'':'s'} due, ${dueHW.length} homework item${dueHW.length===1?'':'s'} due. Current streak: ${streak} day${streak===1?'':'s'}.`);
+    lines.push(due.length||dueHW.length ? `Clear those due items before starting anything new — that's the highest-leverage thing you can do today.` : `Nothing overdue — good spot to push into new chapters or deepen a weak subject.`);
+  }
+  return Promise.resolve(lines.join(' '));
+}
+
 async function callAI(messages){
   const p = currentAIProvider();
+  if(p==='reviewer') return callReviewer(messages);
   if(p==='free') return callFreeModel(messages);
   const key = getProviderKey(p);
   if(!key) throw new Error('No API key saved for '+AI_PROVIDERS[p].label+'.');
@@ -3391,7 +3512,7 @@ function renderAIMessages(){
   if(!aiIsReady()){
     wrap.innerHTML = `<div class="ai-nokey">
       👋 Hey! I'm your study assistant — ask me to explain a topic, plan a revision session, or help when you're stuck on something.<br><br>
-      Add a free API key for ${AI_PROVIDERS[prov]?.label||'your provider'} once in <a style="color:var(--violet-deep);font-weight:700;cursor:pointer;" onclick="closeAIDrawer();go('settings');setTimeout(()=>document.getElementById('aiSettingsCard')?.scrollIntoView({behavior:'smooth',block:'center'}),150);">Settings → AI Study Assistant</a> — or switch the provider there to <b>Free (on-device)</b>, no key needed at all.
+      Add a free API key for ${AI_PROVIDERS[prov]?.label||'your provider'} once in <a style="color:var(--violet-deep);font-weight:700;cursor:pointer;" onclick="closeAIDrawer();go('settings');setTimeout(()=>document.getElementById('aiSettingsCard')?.scrollIntoView({behavior:'smooth',block:'center'}),150);">Settings → AI Study Assistant</a> — or switch the mode there to <b>🎯 Study Reviewer</b>, which works instantly with no key at all.
     </div>`;
     renderAISuggestChips();
     return;
@@ -3403,6 +3524,15 @@ function renderAIMessages(){
     + (aiSending && !freeModelLoading? `<div class="ai-msg bot typing">thinking…</div>` : '');
   wrap.scrollTop = wrap.scrollHeight;
   renderAISuggestChips();
+}
+/* Opens whatever's typed in the AI box as a plain Google search in a new tab/window — no
+   account, no API key, works for any question ("temporary questions") the offline Reviewer
+   or a not-yet-configured provider can't answer. */
+function quickWebSearch(){
+  const input = document.getElementById('aiInput');
+  const q = input ? input.value.trim() : '';
+  if(!q){ toast('Type a question first'); return; }
+  window.open('https://www.google.com/search?q='+encodeURIComponent(q), '_blank', 'noopener');
 }
 async function sendAIMessage(){
   if(aiSending) return;
@@ -3418,7 +3548,7 @@ async function sendAIMessage(){
     const reply = await callAI(aiChatMessages);
     aiChatMessages.push({role:'assistant', content: reply || "Sorry, I couldn't generate a reply — try again."});
   }catch(err){
-    aiChatMessages.push({role:'assistant', content:'⚠️ '+(err.message||'Could not reach the AI — check your connection.')});
+    aiChatMessages.push({role:'assistant', content:'⚠️ '+(err.message||'Could not reach the AI — check your connection.')+' You can switch to the offline 🎯 Study Reviewer in Settings, or tap 🔍 to search the web instead.'});
   }
   aiSending = false; freeModelLoading = false;
   renderAIMessages();
