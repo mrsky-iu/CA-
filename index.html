@@ -78,7 +78,7 @@ button,input,select,textarea{font-family:inherit;color:inherit;}
 main{flex:1;min-width:0;padding:26px 32px 100px;max-width:1180px;}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:22px;}
 .greet h1{font-size:26px;margin:0 0 4px;}
-.greet p{margin:0;color:var(--sub);font-size:14px;}
+.greet p{margin:0;color:var(--sub);font-size:14px;white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;max-width:60ch;}
 .btn{
   border:none;border-radius:14px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer;
   background:var(--violet);color:#fff;transition:transform .1s, box-shadow .15s;box-shadow:var(--shadow);
@@ -951,7 +951,7 @@ function renderTopHeader(){
       <div class="th-quickstats">
         ${!storageOK? `<span class="th-warn" title="Changes aren't saving to this device">⚠</span>`:''}
         <span class="th-qs" title="Current streak">🔥${currentStreak()}</span>
-        ${dte!==null? `<span class="th-qs" title="Days to exam">🎯${dte}d</span>` : `<button class="th-qs th-setdate" onclick="go('settings')">set exam date</button>`}
+        ${dte!==null? `<span class="th-qs" title="Days to exam">🎯${dte}d</span>` : `<button class="th-qs th-setdate" onclick="go('settings')">Set exam date</button>`}
         <button class="th-gear" onclick="toggleQuickTheme()" title="Toggle dark/light">${state.profile.theme==='dark'?'☀':'🌙'}</button>
         <button class="th-gear" onclick="go('settings')" title="Settings">⚙</button>
       </div>
@@ -981,7 +981,7 @@ function pageToday(name){
   return `
   <div class="topbar">
     <div class="greet">
-      <h1>${greeting()}, ${name}.</h1>
+      <h1>${state.profile.name? `${greeting()}, ${name}.` : `${greeting()} 👋`}</h1>
       <p>${new Date().toLocaleDateString('en-GB',{weekday:'long', day:'2-digit', month:'short', year:'numeric'})}${state.profile.group!=='BOTH'? ` · ${GROUP_LABELS[state.profile.group]}`:''}</p>
     </div>
     <div style="display:flex;gap:8px;">
@@ -2092,7 +2092,7 @@ function todoCardHTML(){
   const totalDue = dueRev.length + dueHW.length;
   return `
   <div class="todo-card">
-    <div class="todo-hd">📝 To-Do & Homework Due <span class="hint">${totalDue} due now</span></div>
+    <div class="todo-hd">📝 Homework Due Today <span class="hint">${totalDue} pending</span></div>
     ${dueHW.map(e=>`
       <div class="todo-row">
         <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
@@ -2439,7 +2439,7 @@ function pageDashboard(){
     ${weak.length? `
     <div class="wr-priorities">
       <div class="wr-priorities-hd">NEXT PRIORITIES</div>
-      ${weak.slice(0,3).map(w=>`<div class="wr-pr-row"><span class="wr-pr-dot" style="background:${SUBJECTS[w.k].color}"></span>${SUBJECTS[w.k].name}<span class="wr-pr-count">${w.unreadA} priority-A unread</span></div>`).join('')}
+      ${weak.slice(0,3).map(w=>`<div class="wr-pr-row"><span class="wr-pr-dot" style="background:${SUBJECTS[w.k].color}"></span>${SUBJECTS[w.k].name}<span class="wr-pr-count">${w.unreadA} priority-A chapters remaining</span></div>`).join('')}
     </div>` : ''}
     <div class="wr-insight">${
       thisWk.minutes===0 ? "No study logged this week yet — even a 20-minute session today restarts your momentum."
@@ -2567,7 +2567,7 @@ function pageStrategyPace(){
   <div class="card">${weakest.map(w=>`
     <div class="subject-row"><div class="sname"><span class="swatch" style="background:${SUBJECTS[w.k].color}"></span>${w.k}</div>
     <div class="progress-track"><div class="progress-fill" style="width:${w.prog}%;background:${SUBJECTS[w.k].color}"></div></div>
-    <div class="spct">${w.conf.toFixed(1)}★</div></div>`).join('')}</div>
+    <div class="spct" title="${w.conf.toFixed(1)}/5 readiness">${'★'.repeat(Math.round(w.conf))}${'☆'.repeat(5-Math.round(w.conf))}</div></div>`).join('')}</div>
   <div class="section-title">Next best actions</div>
   ${actions.map((a,i)=>`<div class="strategy-item"><div class="num">${String(i+1).padStart(2,'0')}</div><div>${a}</div></div>`).join('')}
   `;
