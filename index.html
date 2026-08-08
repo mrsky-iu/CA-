@@ -36,7 +36,13 @@
   --shadow: 0 8px 24px rgba(0,0,0,0.35);
 }
 *{box-sizing:border-box;}
-html,body{margin:0;padding:0;height:100%;}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;}
+/* Dedicated scroll container: everything that scrolls lives inside #scrollArea, while the
+   mobile bottom tab bar sits OUTSIDE it as a direct sibling, fixed to the real viewport.
+   This is what actually fixes the tab bar drifting/scrolling up with the page content on
+   phones — a plain `position:fixed` on body-level content can still get dragged along by
+   some mobile browser chrome/webviews; decoupling the scroll container removes that entirely. */
+#scrollArea{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;}
 body{
   font-family:'DM Sans','Segoe UI',system-ui,-apple-system,sans-serif;
   background:var(--bg);
@@ -185,6 +191,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
   .tabbar-mobile{
     display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);
     justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:100;
+    transform:translateZ(0);-webkit-transform:translateZ(0);will-change:transform;
   }
   .tabbar-mobile button{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--sub);font-weight:700;padding:4px 8px;flex:1;}
   .tabbar-mobile button.active{color:var(--violet);}
@@ -441,52 +448,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 .goal-title{font-size:13.5px;font-weight:700;}
 .goal-title.done{text-decoration:line-through;color:var(--sub);}
 
-/* ---------- AI STUDY ASSISTANT (floating chatbot) ---------- */
-.ai-fab{position:fixed;right:20px;bottom:26px;z-index:60;width:56px;height:56px;border-radius:50%;
-  background:var(--violet);color:#fff;border:none;box-shadow:var(--shadow);font-size:23px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:transform .15s;}
-.ai-fab:hover{transform:scale(1.07);}
-@keyframes aiPulseRing{
-  0%{box-shadow:0 0 0 0 rgba(108,92,231,.55);}
-  70%{box-shadow:0 0 0 16px rgba(108,92,231,0);}
-  100%{box-shadow:0 0 0 0 rgba(108,92,231,0);}
-}
-@keyframes aiBounce{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-4px);} }
-.ai-fab.highlight{animation:aiPulseRing 2.2s infinite, aiBounce 2.2s infinite;}
-.ai-fab-badge{position:absolute;top:-3px;right:-3px;background:var(--coral);color:#fff;font-size:11px;font-weight:800;
-  border-radius:50%;width:20px;height:20px;line-height:1;display:none;align-items:center;justify-content:center;
-  box-shadow:0 0 0 2px var(--card);}
-.ai-fab-tip{position:fixed;right:84px;bottom:42px;background:var(--ink);color:#fff;font-size:12.5px;font-weight:700;
-  padding:9px 13px;border-radius:11px;box-shadow:var(--shadow);z-index:61;opacity:0;transform:translateX(8px);
-  transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;cursor:pointer;}
-.ai-fab-tip.show{opacity:1;transform:translateX(0);pointer-events:auto;}
-.ai-fab-tip::after{content:'';position:absolute;right:-6px;top:50%;transform:translateY(-50%);
-  border:6px solid transparent;border-left-color:var(--ink);}
-@media (max-width:900px){
-  .ai-fab{bottom:82px;right:14px;width:50px;height:50px;font-size:20px;}
-  .ai-fab-tip{bottom:96px;right:70px;}
-}
-.ai-drawer-backdrop{position:fixed;inset:0;background:rgba(35,31,61,.35);z-index:70;opacity:0;pointer-events:none;transition:opacity .2s;}
-.ai-drawer-backdrop.open{opacity:1;pointer-events:auto;}
-.ai-drawer{position:fixed;right:0;top:0;bottom:0;width:400px;max-width:100vw;background:var(--card);z-index:71;
-  box-shadow:-8px 0 30px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s;}
-.ai-drawer.open{transform:translateX(0);}
-.ai-drawer-hd{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.ai-drawer-hd h3{margin:0;font-size:16px;display:flex;align-items:center;gap:8px;}
-.ai-drawer-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--sub);line-height:1;}
-.ai-msgs{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
-.ai-msg{max-width:88%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;}
-.ai-msg.user{align-self:flex-end;background:var(--violet);color:#fff;border-bottom-right-radius:4px;}
-.ai-msg.bot{align-self:flex-start;background:var(--violet-soft);color:var(--ink);border-bottom-left-radius:4px;}
-.ai-msg.bot.typing{color:var(--sub);font-style:italic;}
-.ai-nokey{padding:2px 0 14px;font-size:13px;color:var(--sub);line-height:1.6;}
-.ai-suggest-row{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 12px;flex-shrink:0;}
-.ai-suggest-chip{background:var(--violet-soft);color:var(--violet-deep);border:none;border-radius:999px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;}
-.ai-suggest-chip:hover{background:var(--violet);color:#fff;}
-.ai-input-row{padding:12px 14px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;}
-.ai-input-row textarea{flex:1;border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:13.5px;
-  resize:none;max-height:100px;background:var(--bg);color:var(--ink);font-family:inherit;}
-.ai-input-row button{flex-shrink:0;}
 
 /* ---------- CREATOR FOOTER ---------- */
 .creator-footer{text-align:center;padding:26px 16px 10px;color:var(--sub);font-size:12px;}
@@ -496,31 +457,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 </style>
 </head>
 <body>
-<div class="topheader" id="topHeader"></div>
-<div id="app">
-  <nav class="sidebar" id="sidebar"></nav>
-  <main id="main"></main>
+<div id="scrollArea">
+  <div class="topheader" id="topHeader"></div>
+  <div id="app">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main id="main"></main>
+  </div>
 </div>
 <nav class="tabbar-mobile" id="tabbarMobile"></nav>
 <div id="modalRoot"></div>
 <div class="toast" id="toast"></div>
-
-<button class="ai-fab" id="aiFabBtn" title="Ask your Study Assistant">💬<span class="ai-fab-badge" id="aiFabBadge">✨</span></button>
-<div class="ai-fab-tip" id="aiFabTip">✨ Try free AI study help →</div>
-<div class="ai-drawer-backdrop" id="aiBackdrop"></div>
-<div class="ai-drawer" id="aiDrawer">
-  <div class="ai-drawer-hd">
-    <h3>🧠 Study Assistant</h3>
-    <button class="ai-drawer-close" id="aiCloseBtn">✕</button>
-  </div>
-  <div class="ai-msgs" id="aiMsgs"></div>
-  <div class="ai-suggest-row" id="aiSuggestRow"></div>
-  <div class="ai-input-row">
-    <textarea id="aiInput" rows="1" placeholder="Ask about a concept, revision plan, exam strategy..."></textarea>
-    <button class="btn ghost" id="aiSearchBtn" title="Search this on the web instead — no sign-in needed" onclick="quickWebSearch()">🔍</button>
-    <button class="btn" id="aiSendBtn">➤</button>
-  </div>
-</div>
 
 <script>
 /* =========================================================
@@ -1022,7 +968,7 @@ let route = 'today';
 let sessionDraft = null; // used by session tab
 let timerHandle = null;
 
-function go(r){ route=r; render(); window.scrollTo(0,0); }
+function go(r){ route=r; render(); const sa=document.getElementById('scrollArea'); if(sa) sa.scrollTop=0; window.scrollTo(0,0); }
 
 function renderNav(){
   const sb = document.getElementById('sidebar');
@@ -1967,28 +1913,82 @@ function pendingHWQuestions(){
     return sum + Math.max(0, total-comp);
   }, 0);
 }
+function hwIsUrgent(e){
+  // Urgent = has a due date that's today or already passed, and still not done.
+  return !!e.dueDate && e.dueDate<=todayISO() && hwStatus(e)!=='done';
+}
+function hwPendingRowHTML(e){
+  const total = Number(e.totalQuestions)||0, comp = Number(e.completedQuestions)||0;
+  const left = Math.max(0,total-comp);
+  const urgent = hwIsUrgent(e);
+  return `<div class="list-row hw-pending-row ${urgent?'urgent':''}" onclick="hwOpenDetail('${e.id}')" style="cursor:pointer;${urgent? 'background:#FFEAEA;border-radius:12px;padding:10px;margin:4px 0;border-bottom:none;':''}">
+    <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
+    <div style="flex:1;min-width:0;">
+      <b>${e.chapter || e.topic}</b>${e.questionRange? ` <span style="background:#FFEAEA;color:#D64545;font-weight:800;padding:1px 7px;border-radius:8px;font-size:11px;">${e.questionRange}</span>`:''}
+      <br><span style="color:${urgent?'#D64545':'var(--sub)'};font-size:12.5px;font-weight:${urgent?'800':'400'};">
+        ${urgent? `🔴 ${e.dueDate<todayISO()? 'OVERDUE since '+fmtDate(e.dueDate) : 'Due TODAY'}` : (e.dueDate? `Due ${fmtDate(e.dueDate)}` : `${comp}/${total} done · ${left} left`)}
+      </span>
+    </div>
+    <button class="btn ghost sm" onclick="event.stopPropagation();hwMarkDone('${e.id}');showPendingHWPopup();">✓ Done</button>
+  </div>`;
+}
 function showPendingHWPopup(){
   const pending = state.homework.filter(e=>hwStatus(e)!=='done');
+  const urgentCount = pending.filter(hwIsUrgent).length;
+  const bySubj = {};
+  pending.forEach(e=>{ (bySubj[e.subject]=bySubj[e.subject]||[]).push(e); });
+  const subjKeys = Object.keys(bySubj).sort((a,b)=> (bySubj[b].filter(hwIsUrgent).length)-(bySubj[a].filter(hwIsUrgent).length));
   openModal(`
     <button class="close-x" onclick="closeModal()">✕</button>
     <h2>📝 Pending homework</h2>
-    <p style="color:var(--sub);margin-top:-6px;">${pendingHWQuestions()} question${pendingHWQuestions()===1?'':'s'} left across ${pending.length} entr${pending.length===1?'y':'ies'}</p>
-    ${pending.length? `<div style="max-height:50vh;overflow:auto;margin:10px 0;">
-      ${pending.map(e=>{
-        const total = Number(e.totalQuestions)||0, comp = Number(e.completedQuestions)||0;
-        const left = Math.max(0,total-comp);
-        return `<div class="list-row">
-          <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
-          <div style="flex:1;min-width:0;">
-            <b>${SUBJECTS[e.subject].name}</b>${e.chapter? ' · '+e.chapter:''}
-            <br><span style="color:var(--sub);font-size:12.5px;">${comp}/${total} done · ${left} left</span>
-          </div>
-          <button class="btn ghost sm" onclick="hwMarkDone('${e.id}');showPendingHWPopup();">Mark done</button>
-        </div>`;
-      }).join('')}
+    <p style="color:var(--sub);margin-top:-6px;">${pendingHWQuestions()} question${pendingHWQuestions()===1?'':'s'} left across ${pending.length} entr${pending.length===1?'y':'ies'}${urgentCount? ` · <span style="color:#D64545;font-weight:800;">${urgentCount} urgent</span>`:''}</p>
+    ${pending.length? `<div style="max-height:55vh;overflow:auto;margin:10px 0;">
+      ${subjKeys.map(k=>`
+        <div style="font-size:11px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 4px;">${SUBJECTS[k]? SUBJECTS[k].name : k}</div>
+        ${bySubj[k].sort((a,b)=> hwIsUrgent(b)-hwIsUrgent(a)).map(hwPendingRowHTML).join('')}
+      `).join('')}
     </div>` : `<div class="empty" style="padding:20px 0;">Nothing pending — you're all caught up 🎉</div>`}
     <button class="btn" style="width:100%;margin-top:6px;" onclick="closeModal();go('hwlog');">Open full Homework Log →</button>
   `);
+}
+/* Full detail for a single homework entry — reachable by tapping any pending-homework row.
+   Lets you mark it done outright, or update partial progress (completed questions), from
+   one place, without leaving the popup/home flow. */
+function hwOpenDetail(id){
+  const e = state.homework.find(x=>x.id===id);
+  if(!e) return;
+  const status = hwStatus(e);
+  const total = Number(e.totalQuestions)||0, comp = Number(e.completedQuestions)||0;
+  const urgent = hwIsUrgent(e);
+  openModal(`
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h2>${SUBJECTS[e.subject]? SUBJECTS[e.subject].name : e.subject}</h2>
+    ${urgent? `<div style="background:#FFEAEA;color:#D64545;font-weight:800;padding:8px 12px;border-radius:10px;margin-bottom:10px;">🔴 ${e.dueDate<todayISO()?'OVERDUE since '+fmtDate(e.dueDate):'Due today'} — this is urgent</div>` : ''}
+    <div style="font-size:15px;font-weight:700;margin-bottom:6px;">${e.chapter? e.chapter : ''}${e.chapter && e.topic!==e.chapter? '<br>':''}${e.topic!==e.chapter? `<span style="font-weight:500;color:var(--sub);font-size:13px;">${e.topic}</span>`:''}</div>
+    ${e.questionRange? `<div style="margin-bottom:8px;"><span style="background:#FFEAEA;color:#D64545;font-weight:800;padding:3px 10px;border-radius:8px;">Question range: ${e.questionRange}</span></div>`:''}
+    <div style="font-size:12.5px;color:var(--sub);margin-bottom:10px;">
+      Logged ${fmtDate(e.date)}${e.dueDate? ` · Due ${fmtDate(e.dueDate)}` : ''}${status==='done'&&e.completedDate? ` · <span style="color:#1D9C63;font-weight:700;">✓ completed ${fmtDate(e.completedDate)}</span>`:''}
+    </div>
+    ${total>0? `<div class="field"><label class="field-label">Completed questions (of ${total})</label><input type="number" id="hwDetailComp" value="${comp}" min="0" max="${total}"></div>` : ''}
+    ${e.notes? `<div style="font-size:12.5px;color:var(--sub);font-style:italic;margin-bottom:10px;">${e.notes}</div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+      ${status!=='done'? `<button class="btn" onclick="hwMarkDone('${e.id}');closeModal();showPendingHWPopup();">✓ Mark done</button>`:''}
+      ${total>0? `<button class="btn ghost" onclick="hwDetailSaveProgress('${e.id}')">Save progress</button>`:''}
+      <button class="btn ghost" onclick="closeModal();go('hwlog');">Open in Homework Log</button>
+      <button class="btn warn" onclick="hwDelete('${e.id}');closeModal();">Delete</button>
+    </div>
+  `);
+}
+function hwDetailSaveProgress(id){
+  const e = state.homework.find(x=>x.id===id);
+  const input = document.getElementById('hwDetailComp');
+  if(!e || !input) return;
+  const wasDone = hwStatus(e)==='done';
+  e.completedQuestions = parseInt(input.value)||0;
+  const nowDone = hwStatus(e)==='done';
+  if(nowDone && !wasDone) e.completedDate = todayISO();
+  else if(!nowDone) e.completedDate = null;
+  save(); toast(nowDone? 'Marked complete — recorded today 🎉':'Progress saved'); closeModal(); render();
 }
 function hwSetSubj(s){ hwSubjFilter=s; render(); }
 function hwToggleForm(){ hwShowForm=!hwShowForm; render(); }
@@ -2100,15 +2100,32 @@ function pageHWLog(){
 
   return h;
 }
+function hwFormChapterOptions(subj){
+  const chs = state.chapters[subj]||[];
+  return `<option value="">— pick a chapter (optional) —</option>` +
+    chs.map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+}
+function hwFormOnSubjectChange(){
+  const subj = document.getElementById('hwfSubject').value;
+  const chSel = document.getElementById('hwfChapter');
+  if(chSel) chSel.innerHTML = hwFormChapterOptions(subj);
+}
 function hwFormHTML(){
+  const firstSubj = activeSubjectKeys()[0];
   return `<div class="card" style="margin-bottom:14px;">
     <div class="two-col">
       <div class="field"><label class="field-label">Date logged</label><input type="date" id="hwfDate" value="${todayISO()}"></div>
-      <div class="field"><label class="field-label">Subject</label><select id="hwfSubject">${activeSubjectKeys().map(k=>`<option value="${k}">${SUBJECTS[k].name}</option>`).join('')}</select></div>
+      <div class="field"><label class="field-label">Subject</label><select id="hwfSubject" onchange="hwFormOnSubjectChange()">${activeSubjectKeys().map(k=>`<option value="${k}">${SUBJECTS[k].name}</option>`).join('')}</select></div>
     </div>
-    <div class="field"><label class="field-label">Topic / chapter</label><textarea class="topic-textarea" id="hwfTopic" placeholder="e.g. AS 10 — PPE" oninput="autoGrow(this)"></textarea></div>
+    <div class="field"><label class="field-label">Chapter <span class="hint">choose from your syllabus, or leave blank and just type below</span></label>
+      <select id="hwfChapter">${hwFormChapterOptions(firstSubj)}</select>
+    </div>
+    <div class="field"><label class="field-label">Topic detail <span class="hint">write it yourself — a sub-topic, RTP/MTP set, or anything not in the chapter list</span></label><textarea class="topic-textarea" id="hwfTopic" placeholder="e.g. AS 10 — PPE, or leave blank to just use the chapter above" oninput="autoGrow(this)"></textarea></div>
     <div class="field"><label class="field-label">Due date <span class="hint">optional — get reminded if it's not done by then</span></label><input type="date" id="hwfDue" min="${todayISO()}"></div>
-    <div class="field"><label class="field-label">Question range</label><input type="text" id="hwfQR" placeholder="e.g. Q1–5, Q7"></div>
+    <div class="field">
+      <label class="field-label" style="color:#D64545;">Question range</label>
+      <input type="text" id="hwfQR" placeholder="e.g. Q1–5, Q7" style="border-color:#F3B3B3;color:#D64545;font-weight:700;background:#FFF5F5;">
+    </div>
     <div class="two-col">
       <div class="field"><label class="field-label">Total questions</label><input type="number" id="hwfTotal" min="0" placeholder="0"></div>
       <div class="field"><label class="field-label">Completed</label><input type="number" id="hwfComp" min="0" placeholder="0"></div>
@@ -2118,8 +2135,10 @@ function hwFormHTML(){
   </div>`;
 }
 function hwSubmit(){
-  const topic = document.getElementById('hwfTopic').value.trim();
-  if(!topic){ toast('Add a topic first'); return; }
+  const chapter = (document.getElementById('hwfChapter')?.value || '').trim();
+  const topicDetail = document.getElementById('hwfTopic').value.trim();
+  const topic = chapter && topicDetail ? `${chapter} — ${topicDetail}` : (chapter || topicDetail);
+  if(!topic){ toast('Pick a chapter or type a topic first'); return; }
   const total = parseInt(document.getElementById('hwfTotal').value)||0;
   const comp = parseInt(document.getElementById('hwfComp').value)||0;
   const loggedDate = document.getElementById('hwfDate').value || todayISO();
@@ -2128,6 +2147,7 @@ function hwSubmit(){
     date: loggedDate,
     dueDate: document.getElementById('hwfDue').value || null,
     subject: document.getElementById('hwfSubject').value,
+    chapter,
     topic,
     questionRange: document.getElementById('hwfQR').value.trim(),
     totalQuestions: total,
@@ -2137,7 +2157,7 @@ function hwSubmit(){
     remindedAt: null
   });
   hwShowForm = false;
-  save(); toast('Homework logged'); render();
+  save(); toast('Homework logged — it now shows in the list below'); render();
 }
 function hwEntryCardHTML(e){
   const status = hwStatus(e);
@@ -2163,7 +2183,8 @@ function hwEntryCardHTML(e){
     </div>
     <div class="hw-meta">
       <span class="hw-subj-tag" style="background:var(--violet-soft);color:var(--violet-deep);">${e.subject}</span>
-      ${e.questionRange? `<span>${e.questionRange}</span>`:''}
+      ${e.chapter? `<span class="hw-subj-tag" style="background:var(--violet-soft);color:var(--violet-deep);">${e.chapter}</span>`:''}
+      ${e.questionRange? `<span style="background:#FFEAEA;color:#D64545;font-weight:800;padding:2px 8px;border-radius:8px;">${e.questionRange}</span>`:''}
       ${total>0? `<span>${comp}/${total} Qs</span>`:''}
     </div>
     ${total>0? `<div class="hw-prog-wrap"><div class="hw-prog-bar"><div class="hw-prog-fill" style="width:${pct}%;background:${status==='done'?'#1D9C63':status==='in-progress'?'#9C6B00':'#D64545'}"></div></div><div class="hw-prog-text">${pct}%</div></div>`:''}
@@ -2310,31 +2331,14 @@ function hwUpcoming(){
    "In progress" tile. Two halves side-by-side (stacked on mobile): homework due on the left,
    revision reminders on the right. Either half collapses into an iOS-style notification badge
    once it has more than 4 items, showing just a count + chapter/subject names; tap to expand. */
-let hwPanelExpanded = false;
 let revPanelExpanded = false;
-function toggleHWPanel(){ hwPanelExpanded = !hwPanelExpanded; render(); }
 function toggleRevPanel(){ revPanelExpanded = !revPanelExpanded; render(); }
 function todoCardHTML(){
   const dueRev = revisionsDue();
   const dueHW = hwDueOrOverdue();
   const COLLAPSE_AT = 4;
-
-  const hwCollapsed = !hwPanelExpanded && dueHW.length > COLLAPSE_AT;
   const revCollapsed = !revPanelExpanded && dueRev.length > COLLAPSE_AT;
-
-  const hwRowHTML = (e)=>`
-    <div class="hw-rev-row">
-      <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color};margin-top:3px;"></span>
-      <div style="flex:1;min-width:0;">
-        <div class="hw-meta-small">${e.subject}</div>
-        <div style="font-size:12.5px;font-weight:700;">${e.topic}</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;">
-          <span style="font-size:11px;color:${e.dueDate<todayISO()?'#D64545':'var(--sub)'};font-weight:${e.dueDate<todayISO()?'700':'400'};">${e.dueDate<todayISO()?'Overdue since':'Due'} ${fmtDate(e.dueDate)}</span>
-          ${e.questionRange? `<span class="hw-qcount">${e.questionRange}</span>` : (e.totalQuestions? `<span class="hw-qcount">${e.completedQuestions||0}/${e.totalQuestions} Qs</span>` : '')}
-        </div>
-      </div>
-      <button class="btn sm" onclick="hwMarkDone('${e.id}');render();">✓</button>
-    </div>`;
+  const urgentHW = dueHW.filter(hwIsUrgent).length;
 
   const revRowHTML = (r)=>`
     <div class="hw-rev-row">
@@ -2348,14 +2352,6 @@ function todoCardHTML(){
       <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});render();">✓</button>
     </div>`;
 
-  const hwBody = dueHW.length===0
-    ? `<div style="font-size:12px;color:var(--sub);padding:6px 0;">${state.homework.length===0? 'No homework logged yet.' : 'Nothing due — nice.'}</div>`
-    : hwCollapsed
-      ? `<div class="notif-collapsed" onclick="toggleHWPanel()">🔔 <b>${dueHW.length} homework items</b> due — tap to view
-           <div class="notif-chip-list">${dueHW.slice(0,8).map(e=>`<span class="notif-chip">${e.subject}</span>`).join('')}</div>
-         </div>`
-      : dueHW.map(hwRowHTML).join('') + (dueHW.length>COLLAPSE_AT? `<div class="notif-collapsed" onclick="toggleHWPanel()" style="text-align:center;">▲ collapse</div>` : '');
-
   const revBody = dueRev.length===0
     ? `<div style="font-size:12px;color:var(--sub);padding:6px 0;">Nothing due for revision.</div>`
     : revCollapsed
@@ -2364,11 +2360,25 @@ function todoCardHTML(){
          </div>`
       : dueRev.map(revRowHTML).join('') + (dueRev.length>COLLAPSE_AT? `<div class="notif-collapsed" onclick="toggleRevPanel()" style="text-align:center;">▲ collapse</div>` : '');
 
+  // Homework due: a single tappable button showing just the count — urgent (red, pulsing) the
+  // moment anything is due today or overdue. Tap it to see the full subject-wise breakdown and
+  // mark items done, instead of a long list always sitting open on the home page.
+  const hwButtonHTML = dueHW.length===0
+    ? `<div style="font-size:12px;color:var(--sub);padding:6px 0;">${state.homework.length===0? 'No homework logged yet.' : 'Nothing due — nice.'}</div>`
+    : `<button class="hw-due-btn ${urgentHW? 'urgent':''}" onclick="showPendingHWPopup()">
+        <span style="font-size:20px;">${urgentHW? '🔴':'📝'}</span>
+        <span style="flex:1;text-align:left;min-width:0;">
+          <span style="display:block;font-weight:800;font-size:14px;">${dueHW.length} homework item${dueHW.length===1?'':'s'} due</span>
+          <span style="display:block;font-size:11.5px;color:${urgentHW?'#D64545':'var(--sub)'};font-weight:${urgentHW?'700':'400'};">${urgentHW? `${urgentHW} urgent — overdue or due today` : 'tap to view details'}</span>
+        </span>
+        <span style="font-size:18px;color:var(--sub);">›</span>
+      </button>`;
+
   return `
   <div class="hw-rev-split">
     <div class="hw-rev-col">
-      <div class="hw-rev-hd">📝 Homework due ${dueHW.length? `<span class="notif-badge">${dueHW.length}</span>`:''}</div>
-      ${hwBody}
+      <div class="hw-rev-hd">📝 Homework due ${dueHW.length? `<span class="notif-badge" style="${urgentHW?'background:#D64545;':''}">${dueHW.length}</span>`:''}</div>
+      ${hwButtonHTML}
     </div>
     <div class="hw-rev-col">
       <div class="hw-rev-hd">🔁 Revision reminders ${dueRev.length? `<span class="notif-badge">${dueRev.length}</span>`:''}</div>
@@ -2759,7 +2769,7 @@ function pageDashboard(){
   `;
 }
 
-/* ---------- AI STRATEGY (local, rule-based) ---------- */
+/* ---------- STRATEGY (pace plan, local rule-based logic — no AI/network) ---------- */
 let strategyTab = 'pace'; // pace | air
 function setStrategyTab(t){ strategyTab=t; render(); }
 function pageStrategy(){
@@ -2967,42 +2977,6 @@ function pageSettings(){
       <div class="field"><label class="field-label">Stage 4 (days · mastery)</label><input type="number" id="revS4" min="1" value="${revisionOffsets()[3]}"></div>
     </div>
     <button class="btn" style="width:100%;margin-top:10px;" onclick="saveRevisionOffsets()">Save schedule</button>
-  </div>
-
-  <div class="section-title">🧠 AI Study Assistant</div>
-  <div class="card" id="aiSettingsCard">
-    <div style="font-size:12.5px;color:var(--sub);margin-bottom:10px;line-height:1.6;">
-      Powers the chat button in the bottom-right corner. <b>Study Reviewer</b> works instantly, fully offline,
-      with no key and no download — it reads your live progress and gives revision/exam advice.
-      For open-ended concept explanations, add your own free key for Claude, ChatGPT, or Gemini below —
-      it's saved only in this browser (never in your backup export) and sent directly from your device to that provider.
-    </div>
-    <div class="field">
-      <label class="field-label">Assistant mode</label>
-      <select id="aiProviderSelect" onchange="onAIProviderSelectChange()">
-        <option value="reviewer" ${(aiProviderDraft||currentAIProvider())==='reviewer'?'selected':''}>🎯 Study Reviewer — offline, instant, no key</option>
-        <option value="free" ${(aiProviderDraft||currentAIProvider())==='free'?'selected':''}>🆓 Free on-device model — downloads once (~300MB), needs network the first time</option>
-        <option value="anthropic" ${(aiProviderDraft||currentAIProvider())==='anthropic'?'selected':''}>Anthropic Claude</option>
-        <option value="openai" ${(aiProviderDraft||currentAIProvider())==='openai'?'selected':''}>OpenAI ChatGPT</option>
-        <option value="gemini" ${(aiProviderDraft||currentAIProvider())==='gemini'?'selected':''}>Google Gemini</option>
-      </select>
-    </div>
-    <div id="aiKeyFieldWrap">
-      ${(() => {
-        const sel = aiProviderDraft || currentAIProvider();
-        if(sel==='reviewer' || sel==='free') return '';
-        const p = AI_PROVIDERS[sel];
-        if(!p) return '';
-        return `<div class="field">
-          <label class="field-label">${p.label} API key <span class="hint">get one free at <a href="${p.consoleUrl}" target="_blank" rel="noopener" style="color:var(--violet-deep);font-weight:700;">${p.consoleHost}</a></span></label>
-          <input type="password" id="aiKeyInput" placeholder="${getProviderKey(sel)? '•••••••••••••••••••• (saved)' : p.placeholder}" autocomplete="off">
-        </div>`;
-      })()}
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn" onclick="saveAIProvider()">Save</button>
-      ${(currentAIProvider()!=='reviewer' && currentAIProvider()!=='free' && getProviderKey(currentAIProvider()))? `<button class="btn ghost" onclick="clearProviderKey('${currentAIProvider()}')">Remove key</button>` : ''}
-    </div>
   </div>
 
   <div class="section-title">Security</div>
@@ -3288,306 +3262,8 @@ function onPinInput(val){
   }
 }
 
-/* ---------- AI STUDY ASSISTANT ----------
-   Multi-provider: pick "Free" (default) for a small open model that runs entirely on
-   the student's own device via transformers.js — genuinely free, no key, no account,
-   works after the first download even offline. Or plug in a personal key for Anthropic
-   Claude, OpenAI, or Google Gemini for a bigger, faster model. Every key lives only in
-   this browser's localStorage under its own storage key — deliberately kept out of
-   `state` so nothing AI-related is ever bundled into a shared backup export. */
-const AI_PROVIDERS = {
-  anthropic:{ label:'Anthropic Claude', placeholder:'sk-ant-...', keyStore:'cakaro_ai_key_anthropic', consoleUrl:'https://console.anthropic.com', consoleHost:'console.anthropic.com' },
-  openai:   { label:'OpenAI ChatGPT',   placeholder:'sk-...',     keyStore:'cakaro_ai_key_openai',    consoleUrl:'https://platform.openai.com/api-keys', consoleHost:'platform.openai.com' },
-  gemini:   { label:'Google Gemini',    placeholder:'AIza...',    keyStore:'cakaro_ai_key_gemini',    consoleUrl:'https://aistudio.google.com/apikey', consoleHost:'aistudio.google.com' }
-};
-let aiChatMessages = []; // {role:'user'|'assistant', content:string}
-let aiSending = false;
-let freeModelPipeline = null; // cached transformers.js pipeline, loaded once
-let freeModelLoading = false;
-
-function currentAIProvider(){ return state.settings.aiProvider || 'reviewer'; }
-function getProviderKey(p){ try{ return localStorage.getItem(AI_PROVIDERS[p].keyStore) || ''; }catch(e){ return ''; } }
-function setProviderKey(p, key){ try{ if(key) localStorage.setItem(AI_PROVIDERS[p].keyStore, key); else localStorage.removeItem(AI_PROVIDERS[p].keyStore); }catch(e){} }
-/* Whether the currently-selected provider is actually ready to answer right now. */
-function aiIsReady(){ const p = currentAIProvider(); return (p==='free' || p==='reviewer') ? true : !!getProviderKey(p); }
-
-let aiProviderDraft = null; // holds the provider picked in the dropdown until Save is pressed
-function onAIProviderSelectChange(){
-  const el = document.getElementById('aiProviderSelect');
-  aiProviderDraft = el ? el.value : null;
-  render();
-}
-function saveAIProvider(){
-  const el = document.getElementById('aiProviderSelect');
-  const prov = el ? el.value : currentAIProvider();
-  if(prov!=='free' && prov!=='reviewer'){
-    const input = document.getElementById('aiKeyInput');
-    const v = input? input.value.trim() : '';
-    if(v) setProviderKey(prov, v);
-    if(!getProviderKey(prov)){ toast('Enter an API key first'); return; }
-  }
-  state.settings.aiProvider = prov;
-  aiProviderDraft = null;
-  save();
-  toast(prov==='reviewer' ? 'Using the offline Study Reviewer' : prov==='free' ? 'Using the free on-device assistant' : 'Saved — now using '+AI_PROVIDERS[prov].label);
-  render();
-}
-function clearProviderKey(p){
-  if(!confirm('Remove this API key from your device?')) return;
-  setProviderKey(p, '');
-  toast('Key removed');
-  render();
-}
-
-/* Live, private snapshot of the student's progress — sent only to whichever AI provider
-   is active, alongside the question, so answers are grounded in real study data. */
-function aiContextSummary(){
-  const keys = activeSubjectKeys();
-  const ss = syllabusStats(keys);
-  const dte = daysToExam();
-  const due = revisionsDue();
-  const weak = keys.map(k=>{
-    const chs = state.chapters[k]; const done = chs.filter(c=>c.firstRead).length;
-    return {name:SUBJECTS[k].name, pct: chs.length? Math.round(100*done/chs.length):0};
-  }).sort((a,b)=>a.pct-b.pct).slice(0,3);
-  return `Student is preparing for CA Inter${state.profile.group && state.profile.group!=='BOTH'? ' ('+GROUP_LABELS[state.profile.group]+')':''}.
-Days to exam: ${dte===null?'not set':dte}.
-Overall syllabus completion: ${ss.total? Math.round(100*ss.done/ss.total):0}% (${ss.done}/${ss.total} chapters).
-Revisions currently due/overdue: ${due.length}.
-Weakest subjects right now: ${weak.map(w=>w.name+' ('+w.pct+'%)').join(', ')||'n/a'}.`;
-}
-function aiSystemPrompt(){
-  return `You are the Study Assistant inside "Ca Karo", a CA Inter exam-prep tracker app. Help the student with concept explanations, revision planning, exam strategy, and motivation. Be concise, practical, and encouraging — this is a chat bubble, not an essay. Use the student's live progress data below when it's relevant, but don't recite it back unless asked.\n\n${aiContextSummary()}`;
-}
-
-/* ---- Provider: Free / on-device (transformers.js, no key, no server) ---- */
-async function loadFreeModel(onProgress){
-  if(freeModelPipeline) return freeModelPipeline;
-  const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2');
-  freeModelPipeline = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
-    dtype:'q4',
-    progress_callback: (p)=>{ if(p.status==='progress' && onProgress) onProgress(Math.round(p.progress||0)); }
-  });
-  return freeModelPipeline;
-}
-async function callFreeModel(messages){
-  freeModelLoading = true;
-  renderAIMessages();
-  const gen = await loadFreeModel((pct)=>{ freeModelLoadPct = pct; renderAIMessages(); });
-  freeModelLoading = false;
-  const chat = [{role:'system', content: aiSystemPrompt()}, ...messages];
-  const out = await gen(chat, { max_new_tokens: 350, temperature: 0.7, do_sample: true });
-  const turns = out[0].generated_text;
-  return turns[turns.length-1].content.trim();
-}
-
-/* ---- Provider: Anthropic Claude ---- */
-async function callAnthropic(messages, key){
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json', 'x-api-key': key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-    body: JSON.stringify({ model:'claude-sonnet-5', max_tokens:700, system: aiSystemPrompt(), messages: messages.map(m=>({role:m.role, content:m.content})) })
-  });
-  if(!res.ok){
-    let detail=''; try{ detail = (await res.json()).error?.message || ''; }catch(e){}
-    throw new Error(res.status===401? 'Invalid Anthropic key — check Settings.' : (detail || ('API error '+res.status)));
-  }
-  const data = await res.json();
-  return (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
-}
-
-/* ---- Provider: OpenAI ---- */
-async function callOpenAI(messages, key){
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
-    body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:700, messages:[{role:'system', content: aiSystemPrompt()}, ...messages.map(m=>({role:m.role, content:m.content}))] })
-  });
-  if(!res.ok){
-    let detail=''; try{ detail = (await res.json()).error?.message || ''; }catch(e){}
-    throw new Error(res.status===401? 'Invalid OpenAI key — check Settings.' : (detail || ('API error '+res.status)));
-  }
-  const data = await res.json();
-  return (data.choices?.[0]?.message?.content || '').trim();
-}
-
-/* ---- Provider: Google Gemini ---- */
-async function callGemini(messages, key){
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({
-      systemInstruction:{ parts:[{text: aiSystemPrompt()}] },
-      contents: messages.map(m=>({ role: m.role==='assistant' ? 'model' : 'user', parts:[{text:m.content}] }))
-    })
-  });
-  if(!res.ok){
-    let detail=''; try{ detail = (await res.json()).error?.message || ''; }catch(e){}
-    throw new Error(res.status===400 || res.status===401 || res.status===403 ? 'Invalid Gemini key — check Settings.' : (detail || ('API error '+res.status)));
-  }
-  const data = await res.json();
-  return (data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
-}
-
-/* ---- Provider: Study Reviewer (pure local logic, no network, no key — this is the "AI reviewer"
-   the student can always rely on. It reads the same progress data as aiContextSummary() and answers
-   from patterns in the question, plus a general progress readout when nothing more specific matches.) ---- */
-function callReviewer(messages){
-  const q = (messages[messages.length-1]?.content||'').toLowerCase();
-  const keys = activeSubjectKeys();
-  const ss = syllabusStats(keys);
-  const dte = daysToExam();
-  const due = revisionsDue();
-  const dueHW = hwDueOrOverdue();
-  const pct = ss.total? Math.round(100*ss.done/ss.total) : 0;
-  const bySubj = keys.map(k=>{
-    const chs = state.chapters[k]; const done = chs.filter(c=>c.firstRead).length;
-    return {key:k, name:SUBJECTS[k].name, pct: chs.length? Math.round(100*done/chs.length):0};
-  }).sort((a,b)=>a.pct-b.pct);
-  const weakest = bySubj.slice(0,2);
-  const streak = currentStreak();
-  const last7 = last7DaysMinutes();
-
-  const lines = [];
-  if(/plan|schedule|week/.test(q)){
-    lines.push(`With ${dte===null?'no exam date set yet':dte+' days to your exam'}, put your next few sessions on ${weakest.map(w=>w.name).join(' and ')||'your weakest subject'} — that's where completion is lowest (${weakest.map(w=>w.name+' '+w.pct+'%').join(', ')}).`);
-    if(due.length) lines.push(`You also have ${due.length} revision${due.length===1?'':'s'} due — clear those first, they're cheap wins that lock in what you already studied.`);
-    if(dueHW.length) lines.push(`${dueHW.length} homework item${dueHW.length===1?'':'s'} ${dueHW.length===1?'is':'are'} due or overdue — fit those in before starting anything new.`);
-  } else if(/behind|cut|late/.test(q)){
-    lines.push(`You're at ${pct}% overall (${ss.done}/${ss.total} chapters). If time is tight, protect first-read + one revision pass on every chapter over chasing 100% depth anywhere — a shallow pass on everything beats mastery on half the syllabus.`);
-    lines.push(`Cut back on chapters you're already strong in (${bySubj.slice(-1).map(w=>w.name+' '+w.pct+'%').join('')||'your strongest subject'}) to free up time for ${weakest.map(w=>w.name).join(' and ')}.`);
-  } else if(/motivat|tired|stuck|stress|give up/.test(q)){
-    lines.push(streak>0 ? `You're on a ${streak}-day streak — that's real momentum, don't break it over one hard day.` : `No streak running right now — a single 25-minute session today restarts one. Small and consistent beats long and rare.`);
-    lines.push(`Last 7 days you've put in ${minToHM(last7)} total. Progress compounds — one more session moves the needle even when it doesn't feel like it.`);
-  } else if(/quiz|test me/.test(q)){
-    lines.push(`I can't generate custom quiz questions offline — for that, switch to Anthropic/OpenAI/Gemini in Settings → AI Study Assistant with your own key. In the meantime, use the Tests tab to log a mock and get pattern-based feedback on it.`);
-  } else if(/progress|review|how am i doing|status/.test(q) || !lines.length){
-    lines.push(`Overall you're at ${pct}% (${ss.done}/${ss.total} chapters)${dte!==null? `, with ${dte} days left`:''}.`);
-    lines.push(`Weakest right now: ${weakest.map(w=>w.name+' ('+w.pct+'%)').join(', ')||'n/a'}.`);
-    lines.push(`${due.length} revision${due.length===1?'':'s'} due, ${dueHW.length} homework item${dueHW.length===1?'':'s'} due. Current streak: ${streak} day${streak===1?'':'s'}.`);
-    lines.push(due.length||dueHW.length ? `Clear those due items before starting anything new — that's the highest-leverage thing you can do today.` : `Nothing overdue — good spot to push into new chapters or deepen a weak subject.`);
-  }
-  return Promise.resolve(lines.join(' '));
-}
-
-async function callAI(messages){
-  const p = currentAIProvider();
-  if(p==='reviewer') return callReviewer(messages);
-  if(p==='free') return callFreeModel(messages);
-  const key = getProviderKey(p);
-  if(!key) throw new Error('No API key saved for '+AI_PROVIDERS[p].label+'.');
-  if(p==='anthropic') return callAnthropic(messages, key);
-  if(p==='openai') return callOpenAI(messages, key);
-  if(p==='gemini') return callGemini(messages, key);
-}
-
-const AI_SUGGESTIONS = [
-  "Plan my revision for this week",
-  "Explain a topic I'm stuck on",
-  "I'm behind schedule — what should I cut?",
-  "Quiz me on my weakest subject"
-];
-function openAIDrawer(){
-  document.getElementById('aiDrawer').classList.add('open');
-  document.getElementById('aiBackdrop').classList.add('open');
-  markAIWidgetSeen(); // stop the pulse/tooltip once they've actually opened it
-  renderAIMessages();
-  setTimeout(()=> document.getElementById('aiInput')?.focus(), 200);
-}
-function closeAIDrawer(){
-  document.getElementById('aiDrawer').classList.remove('open');
-  document.getElementById('aiBackdrop').classList.remove('open');
-}
-function renderAISuggestChips(){
-  const row = document.getElementById('aiSuggestRow');
-  if(!row) return;
-  row.innerHTML = (!aiChatMessages.length && aiIsReady())? AI_SUGGESTIONS.map(s=>`<button class="ai-suggest-chip" data-q="${escapeHtml(s)}">${s}</button>`).join('') : '';
-  row.querySelectorAll('.ai-suggest-chip').forEach(b=> b.onclick = ()=>{ document.getElementById('aiInput').value = b.dataset.q; sendAIMessage(); });
-}
-let freeModelLoadPct = 0;
-function renderAIMessages(){
-  const wrap = document.getElementById('aiMsgs');
-  if(!wrap) return;
-  const prov = currentAIProvider();
-  if(!aiIsReady()){
-    wrap.innerHTML = `<div class="ai-nokey">
-      👋 Hey! I'm your study assistant — ask me to explain a topic, plan a revision session, or help when you're stuck on something.<br><br>
-      Add a free API key for ${AI_PROVIDERS[prov]?.label||'your provider'} once in <a style="color:var(--violet-deep);font-weight:700;cursor:pointer;" onclick="closeAIDrawer();go('settings');setTimeout(()=>document.getElementById('aiSettingsCard')?.scrollIntoView({behavior:'smooth',block:'center'}),150);">Settings → AI Study Assistant</a> — or switch the mode there to <b>🎯 Study Reviewer</b>, which works instantly with no key at all.
-    </div>`;
-    renderAISuggestChips();
-    return;
-  }
-  const freeNote = (prov==='free' && !aiChatMessages.length && !freeModelLoading)
-    ? `<div class="ai-nokey" style="padding-bottom:6px;">🆓 Free mode — runs right on your device, no key, no account. First reply downloads a small model (~300MB, one-time, cached after that).</div>` : '';
-  wrap.innerHTML = freeNote + aiChatMessages.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'bot'}">${escapeHtml(m.content)}</div>`).join('')
-    + (freeModelLoading? `<div class="ai-msg bot typing">downloading on-device model… ${freeModelLoadPct}%</div>` : '')
-    + (aiSending && !freeModelLoading? `<div class="ai-msg bot typing">thinking…</div>` : '');
-  wrap.scrollTop = wrap.scrollHeight;
-  renderAISuggestChips();
-}
-/* Opens whatever's typed in the AI box as a plain Google search in a new tab/window — no
-   account, no API key, works for any question ("temporary questions") the offline Reviewer
-   or a not-yet-configured provider can't answer. */
-function quickWebSearch(){
-  const input = document.getElementById('aiInput');
-  const q = input ? input.value.trim() : '';
-  if(!q){ toast('Type a question first'); return; }
-  window.open('https://www.google.com/search?q='+encodeURIComponent(q), '_blank', 'noopener');
-}
-async function sendAIMessage(){
-  if(aiSending) return;
-  const input = document.getElementById('aiInput');
-  const text = input.value.trim();
-  if(!text) return;
-  if(!aiIsReady()){ renderAIMessages(); return; }
-  input.value = ''; input.style.height = 'auto';
-  aiChatMessages.push({role:'user', content:text});
-  aiSending = true;
-  renderAIMessages();
-  try{
-    const reply = await callAI(aiChatMessages);
-    aiChatMessages.push({role:'assistant', content: reply || "Sorry, I couldn't generate a reply — try again."});
-  }catch(err){
-    aiChatMessages.push({role:'assistant', content:'⚠️ '+(err.message||'Could not reach the AI — check your connection.')+' You can switch to the offline 🎯 Study Reviewer in Settings, or tap 🔍 to search the web instead.'});
-  }
-  aiSending = false; freeModelLoading = false;
-  renderAIMessages();
-}
-/* Draws attention to the AI button until the student actually opens it once —
-   pulsing glow, a small badge, and a one-time tooltip bubble. */
-function aiWidgetSeen(){ try{ return localStorage.getItem('cakaro_ai_seen')==='1'; }catch(e){ return false; } }
-function markAIWidgetSeen(){
-  try{ localStorage.setItem('cakaro_ai_seen','1'); }catch(e){}
-  document.getElementById('aiFabBtn')?.classList.remove('highlight');
-  hideAITip();
-}
-function showAITip(){
-  const tip = document.getElementById('aiFabTip');
-  if(!tip) return;
-  tip.classList.add('show');
-  setTimeout(hideAITip, 6000);
-}
-function hideAITip(){ document.getElementById('aiFabTip')?.classList.remove('show'); }
-function initAIWidget(){
-  document.getElementById('aiFabBtn').onclick = openAIDrawer;
-  document.getElementById('aiFabTip').onclick = openAIDrawer;
-  document.getElementById('aiCloseBtn').onclick = closeAIDrawer;
-  document.getElementById('aiBackdrop').onclick = closeAIDrawer;
-  const input = document.getElementById('aiInput');
-  input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height = Math.min(100, input.scrollHeight)+'px'; });
-  input.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendAIMessage(); } });
-  document.getElementById('aiSendBtn').onclick = sendAIMessage;
-  if(!aiWidgetSeen()){
-    document.getElementById('aiFabBtn').classList.add('highlight');
-    document.getElementById('aiFabBadge').style.display = 'flex';
-    setTimeout(showAITip, 1200);
-  } else {
-    document.getElementById('aiFabBadge').style.display = 'none';
-  }
-}
 
 restoreActiveSessionOnLoad();
-initAIWidget();
 if(needsUnlock()){
   renderLockScreen();
 } else {
