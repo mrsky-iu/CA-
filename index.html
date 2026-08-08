@@ -649,14 +649,14 @@ function defaultState(){
   const chapters = {};
   SUBJECT_KEYS.forEach(k=>{
     chapters[k] = SUBJECTS[k].chapters.map((name,i)=>({
-      id:k+"_"+i, name, firstRead:false, firstReadDate:null, priority:autoPriority(k,i), notes:"",
+      id:k+"_"+i, name, firstRead:false, firstReadDate:null, revisionStartDate:null, currentStage:0, nextReviewDate:null, priority:autoPriority(k,i), notes:"",
       stages:{lecture:false, revlecture:false, reading:false, questions:false},
       starCount:6, starsFilled:0, revStages:{} // {1:true,7:true,...}
     }));
   });
   return {
     profile:{name:"", examDate:"", theme:"light", group:"BOTH"},
-    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,7,14], revisionRule:{first:1, repeat:7}, goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
+    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,7,30], revisionRule:{first:1, repeat:7}, goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
     chapters,
     wellness:{water:{}, sleep:{}, mood:{}}, // date-keyed logs — water: glasses count, sleep: hours, mood: 'great'|'ok'|'low'
     sessions:[], // {id,subject,chapter,activity,mode,start,end,durationMin,status}
@@ -697,8 +697,16 @@ function migrateState(parsed){
       if(!c.stages) c.stages = {lecture:false, revlecture:false, reading:false, questions:false, ...( c.firstRead? {lecture:true,reading:true,questions:true,revlecture:true} : {})};
       if(c.starCount===undefined) c.starCount = 6;
       if(c.starsFilled===undefined) c.starsFilled = c.firstRead? c.starCount : 0;
+      if(c.revisionStartDate===undefined) c.revisionStartDate = c.firstReadDate || null; // preserves existing revision schedules
+      if(c.currentStage===undefined) c.currentStage = 0;
+      if(c.nextReviewDate===undefined) c.nextReviewDate = null;
     });
   });
+  // The Spaced Repetition Object: every chapter's current_stage (1-4, matching the
+  // day-1/3/7/30 cycle) and next_review_date are derived fields, recomputed here so old
+  // saves (and any manual data edits) always reflect the live schedule + rule below.
+  if(!merged.settings.revisionOffsets || !merged.settings.revisionOffsets.length) merged.settings.revisionOffsets = [1,3,7,30];
+  SUBJECT_KEYS.forEach(k=> (merged.chapters[k]||[]).forEach(c=> refreshRevisionSchedule(c, merged)));
   if(!merged.homework) merged.homework = [];
   merged.homework.forEach(hw=>{
     if(hw.completedDate===undefined) hw.completedDate = null;
@@ -832,28 +840,52 @@ function subjectPriorityReadiness(k){
 function inProgressSessions(){ return state.sessions.filter(s=>s.status==='inprogress'); }
 function daysToExam(){ if(!state.profile.examDate) return null; return Math.max(0,daysBetween(todayISO(), state.profile.examDate)); }
 
-/* revision due calc */
-/* Revision cadence: stage 1 due 1 day after first study; every stage after that is
-   `repeat` days after the previous one — open-ended, not capped at a fixed list of stages. */
-function revisionOffsetForStage(stage){
-  const r = state.settings.revisionRule || {first:1, repeat:7};
-  return r.first + r.repeat*(stage-1);
+/* ---------- THE SPACED REPETITION OBJECT ----------
+   Every chapter carries two derived-but-cached fields, exactly like columns on a
+   UserProgress / TopicStatus table:
+     current_stage    (c.currentStage)   — integer 0-4. 0 = clock hasn't started yet
+                                            (no session logged for this chapter). 1-4 tracks
+                                            which of the Day-1 / Day-3 / Day-7 / Day-30 revision
+                                            cycles is next due. Stays at 4 once fully revised.
+     next_review_date (c.nextReviewDate) — the date that stage is due, or null once mastered
+                                            (all 4 stages logged) or not yet started.
+   The clock (revisionStartDate) is set the moment ANY session is logged for a chapter —
+   from the live timer (endSession) or a pasted/backdated log (submitQuickComplete) — never
+   from ticking a syllabus checkbox on its own. See markStageFromActivity(). */
+function revisionOffsets(s){
+  const st = s || state;
+  const o = st.settings.revisionOffsets;
+  return (o && o.length)? o : [1,3,7,30];
 }
 function revisionScheduleLabel(){
-  const r = state.settings.revisionRule || {first:1, repeat:7};
-  return `day ${r.first}, then every ${r.repeat} days`;
+  return revisionOffsets().map(d=>'day '+d).join(' → ');
+}
+function stageDayLabel(stage){
+  const o = revisionOffsets();
+  return 'Day ' + (o[stage-1] ?? o[o.length-1]);
+}
+/* Recomputes current_stage + next_review_date for one chapter from its revisionStartDate
+   and revStages log. Call this any time revisionStartDate is set or a stage is marked done —
+   it's cheap, so also called defensively inside revisionsDue()/revisionScheduleInRange() to
+   self-heal any chapter whose cached fields drifted (e.g. imported backups, manual edits). */
+function refreshRevisionSchedule(c, s){
+  const offsets = revisionOffsets(s);
+  if(!c.revisionStartDate){ c.currentStage = 0; c.nextReviewDate = null; return; }
+  if(!c.revStages) c.revStages = {};
+  let stage = 1;
+  while(stage<=offsets.length && c.revStages[stage]) stage++;
+  if(stage>offsets.length){ c.currentStage = offsets.length; c.nextReviewDate = null; return; } // mastered — all 4 cycles done
+  c.currentStage = stage;
+  c.nextReviewDate = addDays(c.revisionStartDate, offsets[stage-1]);
 }
 function revisionsDue(){
   const due=[]; const today=todayISO();
   SUBJECT_KEYS.forEach(k=>{
     state.chapters[k].forEach(c=>{
-      if(!c.firstRead || !c.firstReadDate) return;
-      if(!c.revStages) c.revStages = {};
-      for(let stage=1; stage<=200; stage++){ // 200 stages ≈ years ahead — plenty, and offsets only grow, so safe to break early
-        if(c.revStages[stage]) continue; // already done — check the next stage too, in case it's also due
-        const dueDate = addDays(c.firstReadDate, revisionOffsetForStage(stage));
-        if(dueDate<=today){ due.push({subject:k, chapter:c, stage, dueDate}); }
-        else break; // offsets are monotonically increasing, so nothing further can be due yet
+      if(!c.revisionStartDate) return; // clock hasn't started — no session logged for this chapter yet
+      refreshRevisionSchedule(c);
+      if(c.nextReviewDate && c.nextReviewDate<=today){
+        due.push({subject:k, chapter:c, stage:c.currentStage, dueDate:c.nextReviewDate});
       }
     });
   });
@@ -864,12 +896,13 @@ function revisionScheduleInRange(startISO, days){
   const endISO = addDays(startISO, days);
   const byDate = {};
   for(let i=0;i<days;i++){ byDate[addDays(startISO,i)] = []; }
+  const offsets = revisionOffsets();
   SUBJECT_KEYS.forEach(k=>{
     state.chapters[k].forEach(c=>{
-      if(!c.firstRead || !c.firstReadDate) return;
-      for(let stage=1; stage<=200; stage++){
-        const dueDate = addDays(c.firstReadDate, revisionOffsetForStage(stage));
-        if(dueDate>=endISO) break; // monotonically increasing — nothing later in range either
+      if(!c.revisionStartDate) return;
+      for(let stage=1; stage<=offsets.length; stage++){
+        const dueDate = addDays(c.revisionStartDate, offsets[stage-1]);
+        if(dueDate>=endISO) break; // offsets only grow — nothing later in range either
         if(dueDate>=startISO && byDate[dueDate]){
           byDate[dueDate].push({subject:k, chapter:c, stage, done: !!(c.revStages&&c.revStages[stage])});
         }
@@ -1411,10 +1444,10 @@ function endSession(status){
   const durationMin = Math.round(elapsed/60) || 1;
   state.sessions.push({id:d.id, subject:d.subject, chapter:d.chapter, activity:d.activity, mode:d.mode, topic:d.topic||'', start:d.start, end:new Date().toISOString(), durationMin, status});
   if(status==='complete'){
-    markStageFromActivity(d.subject, d.chapter, d.activity);
+    markStageFromActivity(d.subject, d.chapter, d.activity, d.start.slice(0,10));
     if(d.revisionLink){
       const c = state.chapters[d.revisionLink.subject].find(x=>x.id===d.revisionLink.chapterId);
-      if(c){ if(!c.revStages) c.revStages={}; c.revStages[d.revisionLink.stage] = todayISO(); }
+      if(c){ if(!c.revStages) c.revStages={}; c.revStages[d.revisionLink.stage] = todayISO(); refreshRevisionSchedule(c); }
     }
   }
   sessionDraft = null;
@@ -1423,7 +1456,7 @@ function endSession(status){
   toast(status==='complete'? (d.revisionLink? 'Revision timer complete — marked done ✔️' : 'Session completed 🎉') : 'Saved as in progress');
   render();
 }
-function markStageFromActivity(subject, chapterName, activityId){
+function markStageFromActivity(subject, chapterName, activityId, sessionDate){
   const ch = state.chapters[subject].find(c=>c.name===chapterName);
   if(!ch) return;
   if(!ch.stages) ch.stages = {lecture:false, revlecture:false, reading:false, questions:false};
@@ -1431,6 +1464,11 @@ function markStageFromActivity(subject, chapterName, activityId){
     ch.stages[activityId] = true;
     syncFirstRead(ch);
   }
+  // Revision clock starts the moment you log ANY session for this chapter — lecture, reading,
+  // whichever comes first — not only once every stage checkbox is ticked. Backdates correctly
+  // when logged via Quick-complete for a past date.
+  if(!ch.revisionStartDate) ch.revisionStartDate = sessionDate || todayISO();
+  refreshRevisionSchedule(ch);
 }
 function cancelSession(){
   if(!confirm('Discard this session? The time won\'t be logged.')) return;
@@ -1552,7 +1590,7 @@ function submitQuickComplete(){
   const min = parseInt(document.getElementById('qcMin').value)||30;
   state.sessions.push({id:uid(), subject, chapter, activity, topic, mode:'quick', start:date+"T12:00:00", end:date+"T12:"+String(min%60).padStart(2,'0')+":00", durationMin:min, status:'complete'});
   if(true){
-    markStageFromActivity(subject, chapter, activity);
+    markStageFromActivity(subject, chapter, activity, date);
   }
   save(); closeModal(); toast('Logged!'); render();
 }
@@ -1734,6 +1772,8 @@ function syncFirstRead(c){
   const wasFirstRead = c.firstRead;
   c.firstRead = chapterStagePct(c)===100;
   if(c.firstRead && !c.firstReadDate) c.firstReadDate = todayISO();
+  if(c.firstRead && !c.revisionStartDate) c.revisionStartDate = c.firstReadDate; // fallback for chapters ticked complete manually, never logged as a session
+  refreshRevisionSchedule(c);
   return c.firstRead && !wasFirstRead; // true only on the exact transition to complete
 }
 function toggleStage(subjKey, id, stageId){
@@ -2156,7 +2196,7 @@ function pageRevisions(){
     ${due.length? due.map(r=>`
       <div class="list-row">
         <div style="width:8px;height:8px;border-radius:50%;background:${SUBJECTS[r.subject].color};"></div>
-        <div style="flex:1;"><b>${r.chapter.name}</b><br><span style="color:var(--sub);font-size:12.5px;">${SUBJECTS[r.subject].name} · Revision ${r.stage} · due ${fmtDate(r.dueDate)}</span></div>
+        <div style="flex:1;"><b>${r.chapter.name}</b><br><span style="color:var(--sub);font-size:12.5px;">${SUBJECTS[r.subject].name} · ${stageDayLabel(r.stage)} revision · due ${fmtDate(r.dueDate)}</span></div>
         <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})">▶ Start timer</button>
         <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage})">Mark done</button>
       </div>`).join('') : `<div class="empty" style="padding:24px 0;">No revisions due. Finish first-reading a chapter (Syllabus) to start its revision schedule (${revisionScheduleLabel()}).</div>`}
@@ -2164,10 +2204,12 @@ function pageRevisions(){
 }
 function completeRevision(subj, chId, stage){
   const c = state.chapters[subj].find(x=>x.id===chId);
+  if(!c.revStages) c.revStages = {};
   c.revStages[stage] = todayISO();
+  refreshRevisionSchedule(c);
   save(); toast('Revision logged'); render();
 }
-/* ---------- SPACED-REPETITION AUTO REMINDER (1-3-7-14 day method) ---------- */
+/* ---------- SPACED-REPETITION AUTO REMINDER (day 1 → 3 → 7 → 30 method, configurable in Settings) ---------- */
 /* ---------- HOMEWORK DUE-DATE REMINDER ---------- */
 function hwDueOrOverdue(){
   const today = todayISO();
@@ -2198,7 +2240,7 @@ function todoCardHTML(){
     ${dueRev.map(r=>`
       <div class="todo-row">
         <span class="hw-subj-dot" style="background:${SUBJECTS[r.subject].color}"></span>
-        <div style="flex:1;min-width:0;"><b>${r.chapter.name}</b><div style="font-size:11px;color:var(--sub);">Revision ${r.stage} due ${fmtDate(r.dueDate)}</div></div>
+        <div style="flex:1;min-width:0;"><b>${r.chapter.name}</b><div style="font-size:11px;color:var(--sub);">${stageDayLabel(r.stage)} revision due ${fmtDate(r.dueDate)}</div></div>
         <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})" title="Start revision timer">▶</button>
         <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});render();">✓</button>
       </div>`).join('')}
@@ -2269,7 +2311,7 @@ function checkDailyReminders(force){
         <div style="font-size:11px;font-weight:800;color:${SUBJECTS[subj].color};text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px;">${SUBJECTS[subj].name}</div>
         ${groupedRev[subj].map(r=>`
           <div class="list-row" style="padding:8px 0;">
-            <div style="flex:1;"><b style="font-size:13px;">${r.chapter.name}</b><br><span style="color:var(--sub);font-size:11.5px;">Revision ${r.stage} (day ${revisionOffsetForStage(r.stage)}) · due ${fmtDate(r.dueDate)}</span></div>
+            <div style="flex:1;"><b style="font-size:13px;">${r.chapter.name}</b><br><span style="color:var(--sub);font-size:11.5px;">${stageDayLabel(r.stage)} revision · due ${fmtDate(r.dueDate)}</span></div>
             <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});checkDailyReminders(true);">✓ Done</button>
           </div>`).join('')}
       `).join('')}
@@ -2798,12 +2840,16 @@ function pageSettings(){
     <button class="btn" onclick="saveWellnessSettings()" style="grid-column:1/-1;">Save wellness settings</button>
   </div>
 
-  <div class="section-title">Revision schedule</div>
-  <div class="card two-col">
-    <div class="field"><label class="field-label">1st revision — days after first study</label><input type="number" id="revFirst" min="1" value="${(s.revisionRule||{first:1}).first}"></div>
-    <div class="field"><label class="field-label">Then repeat every (days)</label><input type="number" id="revRepeat" min="1" value="${(s.revisionRule||{repeat:7}).repeat}"></div>
-    <p class="hint" style="grid-column:1/-1;margin:-4px 0 4px;">e.g. 1 then 7 → 1st revision next day, 2nd revision a week after that, then every week after — forever, until you mark it done.</p>
-    <button class="btn" style="grid-column:1/-1;" onclick="saveRevisionOffsets()">Save schedule</button>
+  <div class="section-title">Revision schedule <span class="hint">spaced repetition</span></div>
+  <div class="card">
+    <p class="hint" style="margin:0 0 10px;">The revision clock starts the moment you log <b>any</b> session for a chapter — live timer or Log past session — not when you tick the syllabus checkbox. Each stage fires this many days after that first session; stage 4 is your mastery pass.</p>
+    <div class="two-col">
+      <div class="field"><label class="field-label">Stage 1 (days)</label><input type="number" id="revS1" min="1" value="${revisionOffsets()[0]}"></div>
+      <div class="field"><label class="field-label">Stage 2 (days)</label><input type="number" id="revS2" min="1" value="${revisionOffsets()[1]}"></div>
+      <div class="field"><label class="field-label">Stage 3 (days)</label><input type="number" id="revS3" min="1" value="${revisionOffsets()[2]}"></div>
+      <div class="field"><label class="field-label">Stage 4 (days · mastery)</label><input type="number" id="revS4" min="1" value="${revisionOffsets()[3]}"></div>
+    </div>
+    <button class="btn" style="width:100%;margin-top:10px;" onclick="saveRevisionOffsets()">Save schedule</button>
   </div>
 
   <div class="section-title">Security</div>
@@ -2900,9 +2946,12 @@ function saveWellnessSettings(){
   save(); toast('Wellness settings saved');
 }
 function saveRevisionOffsets(){
-  const first = Math.max(1, parseInt(document.getElementById('revFirst').value)||1);
-  const repeat = Math.max(1, parseInt(document.getElementById('revRepeat').value)||7);
-  state.settings.revisionRule = {first, repeat};
+  const defaults = [1,3,7,30];
+  const vals = ['revS1','revS2','revS3','revS4'].map((id,i)=> Math.max(1, parseInt(document.getElementById(id).value)||defaults[i]));
+  for(let i=1;i<vals.length;i++){ if(vals[i]<=vals[i-1]) vals[i] = vals[i-1]+1; } // keep strictly increasing
+  state.settings.revisionOffsets = vals;
+  // re-derive current_stage/next_review_date for every chapter under the new rule immediately
+  SUBJECT_KEYS.forEach(k=> state.chapters[k].forEach(c=> refreshRevisionSchedule(c)));
   save(); toast('Schedule saved — ' + revisionScheduleLabel()); render();
 }
 function exportBackup(){
