@@ -280,6 +280,19 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 .home-stat-grid .card{min-width:0;}
 .hw-pending-chip{width:min(230px,55%);display:flex;align-items:center;gap:9px;padding:10px 12px;margin-bottom:14px;cursor:pointer;}
 .hw-pending-badge{color:#fff;font-weight:800;font-size:12px;min-width:24px;height:24px;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0 7px;flex-shrink:0;}
+.rev-cal-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;}
+.rev-cal-day{flex:0 0 auto;width:56px;min-height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 4px;scroll-snap-align:start;position:relative;}
+.rev-cal-dow{font-size:9.5px;font-weight:700;text-transform:uppercase;color:var(--sub);letter-spacing:.03em;}
+.rev-cal-num{font-size:16px;font-weight:800;font-family:'Fredoka',sans-serif;}
+.rev-cal-badge{font-size:11px;font-weight:800;background:var(--violet-soft);color:var(--violet-deep);border-radius:8px;padding:1px 6px;}
+.rev-cal-day.empty .rev-cal-badge{display:none;}
+.rev-cal-day.empty{opacity:.55;}
+.rev-cal-day.today{border-color:var(--violet);box-shadow:0 0 0 2px var(--violet-soft);}
+.rev-cal-day.today .rev-cal-badge{background:var(--violet);color:#fff;}
+.rev-cal-day.done .rev-cal-badge{background:#E5F7F1;color:#1D9C63;}
+.rev-cal-day.overdue{background:#FDEDED;border-color:#F3B7B7;}
+.rev-cal-day.overdue .rev-cal-dow{color:#D64545;}
+.rev-cal-day.overdue .rev-cal-num{color:#D64545;font-size:18px;}
 .syl-stat{flex:1;min-width:0;background:var(--card);border-radius:14px;padding:10px 8px;border:1px solid var(--line);text-align:center;}
 .syl-stat .lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--sub);font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .syl-stat .val{font-size:19px;font-weight:700;font-family:'Fredoka',sans-serif;line-height:1;}
@@ -643,7 +656,7 @@ function defaultState(){
   });
   return {
     profile:{name:"", examDate:"", theme:"light", group:"BOTH"},
-    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,7,14], goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
+    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,7,14], revisionRule:{first:1, repeat:7}, goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
     chapters,
     wellness:{water:{}, sleep:{}, mood:{}}, // date-keyed logs — water: glasses count, sleep: hours, mood: 'great'|'ok'|'low'
     sessions:[], // {id,subject,chapter,activity,mode,start,end,durationMin,status}
@@ -714,6 +727,7 @@ function migrateState(parsed){
   if(!merged.wellness.mood) merged.wellness.mood = {};
   if(merged.settings.waterGoal===undefined) merged.settings.waterGoal = 8;
   if(merged.settings.breakReminderMin===undefined) merged.settings.breakReminderMin = 50;
+  if(!merged.settings.revisionRule) merged.settings.revisionRule = {first:1, repeat:7}; // 1st revision +1 day, then every 7 days thereafter — old data keeps its completed revStages as-is
   if(!merged.security) merged.security = {pinHash:null, enabled:false};
   return merged;
 }
@@ -819,20 +833,50 @@ function inProgressSessions(){ return state.sessions.filter(s=>s.status==='inpro
 function daysToExam(){ if(!state.profile.examDate) return null; return Math.max(0,daysBetween(todayISO(), state.profile.examDate)); }
 
 /* revision due calc */
+/* Revision cadence: stage 1 due 1 day after first study; every stage after that is
+   `repeat` days after the previous one — open-ended, not capped at a fixed list of stages. */
+function revisionOffsetForStage(stage){
+  const r = state.settings.revisionRule || {first:1, repeat:7};
+  return r.first + r.repeat*(stage-1);
+}
+function revisionScheduleLabel(){
+  const r = state.settings.revisionRule || {first:1, repeat:7};
+  return `day ${r.first}, then every ${r.repeat} days`;
+}
 function revisionsDue(){
   const due=[]; const today=todayISO();
   SUBJECT_KEYS.forEach(k=>{
     state.chapters[k].forEach(c=>{
       if(!c.firstRead || !c.firstReadDate) return;
-      state.settings.revisionOffsets.forEach((off,idx)=>{
-        const stage = idx+1;
-        if(c.revStages[stage]) return;
-        const dueDate = addDays(c.firstReadDate, off);
+      if(!c.revStages) c.revStages = {};
+      for(let stage=1; stage<=200; stage++){ // 200 stages ≈ years ahead — plenty, and offsets only grow, so safe to break early
+        if(c.revStages[stage]) continue; // already done — check the next stage too, in case it's also due
+        const dueDate = addDays(c.firstReadDate, revisionOffsetForStage(stage));
         if(dueDate<=today){ due.push({subject:k, chapter:c, stage, dueDate}); }
-      });
+        else break; // offsets are monotonically increasing, so nothing further can be due yet
+      }
     });
   });
   return due.sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+}
+/* Everything scheduled (any status) within [startISO, startISO+days) — powers the revision calendar. */
+function revisionScheduleInRange(startISO, days){
+  const endISO = addDays(startISO, days);
+  const byDate = {};
+  for(let i=0;i<days;i++){ byDate[addDays(startISO,i)] = []; }
+  SUBJECT_KEYS.forEach(k=>{
+    state.chapters[k].forEach(c=>{
+      if(!c.firstRead || !c.firstReadDate) return;
+      for(let stage=1; stage<=200; stage++){
+        const dueDate = addDays(c.firstReadDate, revisionOffsetForStage(stage));
+        if(dueDate>=endISO) break; // monotonically increasing — nothing later in range either
+        if(dueDate>=startISO && byDate[dueDate]){
+          byDate[dueDate].push({subject:k, chapter:c, stage, done: !!(c.revStages&&c.revStages[stage])});
+        }
+      }
+    });
+  });
+  return byDate;
 }
 function reviewYesterday(){
   const y = addDays(todayISO(),-1);
@@ -1212,6 +1256,23 @@ function sessionConfigHTML(){
     <button class="btn" onclick="startSession()">Start session →</button>
   </div>`;
 }
+function startRevisionTimer(subj, chId, stage){
+  const chapter = state.chapters[subj].find(c=>c.id===chId);
+  if(!chapter) return;
+  sessionDraft = {activity:'revlecture', subject:subj, chapter:chapter.name, mode:'live', topic:'', revisionLink:{subject:subj, chapterId:chId, stage}};
+  sessionDraft.id = uid();
+  sessionDraft.start = new Date().toISOString();
+  sessionDraft.startedAt = sessionDraft.start;
+  sessionDraft.pausedAt = null;
+  sessionDraft.totalPausedMs = 0;
+  sessionDraft.status = 'running';
+  sessionDraft.phase = 'work';
+  sessionDraft.phaseStartedAt = sessionDraft.start;
+  sessionDraft.breakRemindersGiven = 0;
+  persistActiveSession();
+  startTickInterval();
+  go('session');
+}
 function startSession(){
   const subject = document.getElementById('cfgSubject').value;
   const chapter = document.getElementById('cfgChapter').value;
@@ -1351,11 +1412,15 @@ function endSession(status){
   state.sessions.push({id:d.id, subject:d.subject, chapter:d.chapter, activity:d.activity, mode:d.mode, topic:d.topic||'', start:d.start, end:new Date().toISOString(), durationMin, status});
   if(status==='complete'){
     markStageFromActivity(d.subject, d.chapter, d.activity);
+    if(d.revisionLink){
+      const c = state.chapters[d.revisionLink.subject].find(x=>x.id===d.revisionLink.chapterId);
+      if(c){ if(!c.revStages) c.revStages={}; c.revStages[d.revisionLink.stage] = todayISO(); }
+    }
   }
   sessionDraft = null;
   state.activeSession = null;
   save();
-  toast(status==='complete'?'Session completed 🎉':'Saved as in progress');
+  toast(status==='complete'? (d.revisionLink? 'Revision timer complete — marked done ✔️' : 'Session completed 🎉') : 'Saved as in progress');
   render();
 }
 function markStageFromActivity(subject, chapterName, activityId){
@@ -1677,7 +1742,7 @@ function toggleStage(subjKey, id, stageId){
   c.stages[stageId] = !c.stages[stageId];
   const justCompleted = syncFirstRead(c);
   save();
-  if(justCompleted) toast(`✓ ${c.name} complete — revisions scheduled for day ${state.settings.revisionOffsets.join('/')}`);
+  if(justCompleted) toast(`✓ ${c.name} complete — revisions scheduled: ${revisionScheduleLabel()}`);
   render();
 }
 function toggleAllStages(subjKey, id){
@@ -1686,7 +1751,7 @@ function toggleAllStages(subjKey, id){
   STAGE_ORDER.forEach(s=> c.stages[s] = !full);
   const justCompleted = syncFirstRead(c);
   save();
-  toast(full? 'Chapter unmarked' : (justCompleted? `✓ Complete! Revisions scheduled for day ${state.settings.revisionOffsets.join('/')}` : 'Chapter marked complete 🎉'));
+  toast(full? 'Chapter unmarked' : (justCompleted? `✓ Complete! Revisions scheduled: ${revisionScheduleLabel()}` : 'Chapter marked complete 🎉'));
   render();
 }
 
@@ -1715,7 +1780,7 @@ function toggleLectureStar(subjKey, id, n){
       c.starsFilled = starCount;
       const justCompleted = syncFirstRead(c);
       save();
-      toast(`🌟 Super Star! ${c.name} is 100% complete — revisions scheduled for day ${state.settings.revisionOffsets.join('/')}`);
+      toast(`🌟 Super Star! ${c.name} is 100% complete — revisions scheduled: ${revisionScheduleLabel()}`);
       render();
     } else {
       // toggle back off — un-complete the chapter
@@ -2047,11 +2112,41 @@ function toggleGoal(i){
 }
 
 /* ---------- REVISIONS ---------- */
+function revisionCalendarHTML(){
+  const today = todayISO();
+  const overdueCount = revisionsDue().filter(r=>r.dueDate<today).length;
+  const schedule = revisionScheduleInRange(today, 14);
+  const days = Object.keys(schedule).sort();
+  return `
+  <div class="section-title">🗓️ Revision calendar <span class="hint">next 14 days</span></div>
+  <div class="rev-cal-strip">
+    ${overdueCount? `<div class="rev-cal-day overdue"><div class="rev-cal-dow">Overdue</div><div class="rev-cal-num">${overdueCount}</div></div>`:''}
+    ${days.map(d=>{
+      const items = schedule[d];
+      const total = items.length;
+      const doneCt = items.filter(i=>i.done).length;
+      const isToday = d===today;
+      let cls = 'rev-cal-day';
+      if(total===0) cls += ' empty';
+      else if(doneCt===total) cls += ' done';
+      else if(isToday) cls += ' today';
+      const dt = new Date(d+'T00:00:00');
+      return `<div class="${cls}" title="${total} revision${total===1?'':'s'} scheduled">
+        <div class="rev-cal-dow">${dt.toLocaleDateString('en-GB',{weekday:'short'})}</div>
+        <div class="rev-cal-num">${dt.getDate()}</div>
+        ${total? `<div class="rev-cal-badge">${doneCt===total? '✓' : total}</div>` : ''}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
 function pageRevisions(){
   const due = revisionsDue();
   const yest = reviewYesterday();
   return `
-  <div class="topbar"><div class="greet"><h1>Revisions</h1><p>Quick "review yesterday" and your spaced chapter revisions.</p></div></div>
+  <div class="topbar"><div class="greet"><h1>Revision Queue</h1><p>Quick "review yesterday" and your spaced chapter revisions.</p></div></div>
+
+  ${revisionCalendarHTML()}
+
   <div class="section-title">Review yesterday <span class="hint">fades after 2 days</span></div>
   <div class="card">
     ${yest.length? yest.map(sessionRowHTML).join('') : `<div class="empty" style="padding:24px 0;">Nothing to review — anything you study gets a nudge here the next day.</div>`}
@@ -2062,8 +2157,9 @@ function pageRevisions(){
       <div class="list-row">
         <div style="width:8px;height:8px;border-radius:50%;background:${SUBJECTS[r.subject].color};"></div>
         <div style="flex:1;"><b>${r.chapter.name}</b><br><span style="color:var(--sub);font-size:12.5px;">${SUBJECTS[r.subject].name} · Revision ${r.stage} · due ${fmtDate(r.dueDate)}</span></div>
+        <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})">▶ Start timer</button>
         <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage})">Mark done</button>
-      </div>`).join('') : `<div class="empty" style="padding:24px 0;">No revisions due. Finish first-reading a chapter (Syllabus) to start its ${state.settings.revisionOffsets.join('/')} schedule.</div>`}
+      </div>`).join('') : `<div class="empty" style="padding:24px 0;">No revisions due. Finish first-reading a chapter (Syllabus) to start its revision schedule (${revisionScheduleLabel()}).</div>`}
   </div>`;
 }
 function completeRevision(subj, chId, stage){
@@ -2103,6 +2199,7 @@ function todoCardHTML(){
       <div class="todo-row">
         <span class="hw-subj-dot" style="background:${SUBJECTS[r.subject].color}"></span>
         <div style="flex:1;min-width:0;"><b>${r.chapter.name}</b><div style="font-size:11px;color:var(--sub);">Revision ${r.stage} due ${fmtDate(r.dueDate)}</div></div>
+        <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})" title="Start revision timer">▶</button>
         <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});render();">✓</button>
       </div>`).join('')}
     ${upcomingHW.length? `
@@ -2172,7 +2269,7 @@ function checkDailyReminders(force){
         <div style="font-size:11px;font-weight:800;color:${SUBJECTS[subj].color};text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px;">${SUBJECTS[subj].name}</div>
         ${groupedRev[subj].map(r=>`
           <div class="list-row" style="padding:8px 0;">
-            <div style="flex:1;"><b style="font-size:13px;">${r.chapter.name}</b><br><span style="color:var(--sub);font-size:11.5px;">Revision ${r.stage} (day ${state.settings.revisionOffsets[r.stage-1]}) · due ${fmtDate(r.dueDate)}</span></div>
+            <div style="flex:1;"><b style="font-size:13px;">${r.chapter.name}</b><br><span style="color:var(--sub);font-size:11.5px;">Revision ${r.stage} (day ${revisionOffsetForStage(r.stage)}) · due ${fmtDate(r.dueDate)}</span></div>
             <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});checkDailyReminders(true);">✓ Done</button>
           </div>`).join('')}
       `).join('')}
@@ -2701,12 +2798,12 @@ function pageSettings(){
     <button class="btn" onclick="saveWellnessSettings()" style="grid-column:1/-1;">Save wellness settings</button>
   </div>
 
-  <div class="section-title">Revision schedule <span class="hint">days after first reading</span></div>
-  <div class="card">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      ${s.revisionOffsets.map((o,i)=>`<input type="number" style="width:70px;" value="${o}" data-idx="${i}" class="revOffset">`).join('')}
-    </div>
-    <button class="btn" style="margin-top:12px;" onclick="saveRevisionOffsets()">Save schedule</button>
+  <div class="section-title">Revision schedule</div>
+  <div class="card two-col">
+    <div class="field"><label class="field-label">1st revision — days after first study</label><input type="number" id="revFirst" min="1" value="${(s.revisionRule||{first:1}).first}"></div>
+    <div class="field"><label class="field-label">Then repeat every (days)</label><input type="number" id="revRepeat" min="1" value="${(s.revisionRule||{repeat:7}).repeat}"></div>
+    <p class="hint" style="grid-column:1/-1;margin:-4px 0 4px;">e.g. 1 then 7 → 1st revision next day, 2nd revision a week after that, then every week after — forever, until you mark it done.</p>
+    <button class="btn" style="grid-column:1/-1;" onclick="saveRevisionOffsets()">Save schedule</button>
   </div>
 
   <div class="section-title">Security</div>
@@ -2803,9 +2900,10 @@ function saveWellnessSettings(){
   save(); toast('Wellness settings saved');
 }
 function saveRevisionOffsets(){
-  const vals = Array.from(document.querySelectorAll('.revOffset')).map(i=>parseInt(i.value)||0);
-  state.settings.revisionOffsets = vals;
-  save(); toast('Schedule saved');
+  const first = Math.max(1, parseInt(document.getElementById('revFirst').value)||1);
+  const repeat = Math.max(1, parseInt(document.getElementById('revRepeat').value)||7);
+  state.settings.revisionRule = {first, repeat};
+  save(); toast('Schedule saved — ' + revisionScheduleLabel()); render();
 }
 function exportBackup(){
   const ok = triggerDownload('ca-karo-backup.json', JSON.stringify(state,null,2), 'application/json');
