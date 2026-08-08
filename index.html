@@ -421,6 +421,53 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 .goal-title{font-size:13.5px;font-weight:700;}
 .goal-title.done{text-decoration:line-through;color:var(--sub);}
 
+/* ---------- AI STUDY ASSISTANT (floating chatbot) ---------- */
+.ai-fab{position:fixed;right:20px;bottom:26px;z-index:60;width:56px;height:56px;border-radius:50%;
+  background:var(--violet);color:#fff;border:none;box-shadow:var(--shadow);font-size:23px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:transform .15s;}
+.ai-fab:hover{transform:scale(1.07);}
+@keyframes aiPulseRing{
+  0%{box-shadow:0 0 0 0 rgba(108,92,231,.55);}
+  70%{box-shadow:0 0 0 16px rgba(108,92,231,0);}
+  100%{box-shadow:0 0 0 0 rgba(108,92,231,0);}
+}
+@keyframes aiBounce{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-4px);} }
+.ai-fab.highlight{animation:aiPulseRing 2.2s infinite, aiBounce 2.2s infinite;}
+.ai-fab-badge{position:absolute;top:-3px;right:-3px;background:var(--coral);color:#fff;font-size:11px;font-weight:800;
+  border-radius:50%;width:20px;height:20px;line-height:1;display:none;align-items:center;justify-content:center;
+  box-shadow:0 0 0 2px var(--card);}
+.ai-fab-tip{position:fixed;right:84px;bottom:42px;background:var(--ink);color:#fff;font-size:12.5px;font-weight:700;
+  padding:9px 13px;border-radius:11px;box-shadow:var(--shadow);z-index:61;opacity:0;transform:translateX(8px);
+  transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;cursor:pointer;}
+.ai-fab-tip.show{opacity:1;transform:translateX(0);pointer-events:auto;}
+.ai-fab-tip::after{content:'';position:absolute;right:-6px;top:50%;transform:translateY(-50%);
+  border:6px solid transparent;border-left-color:var(--ink);}
+@media (max-width:900px){
+  .ai-fab{bottom:82px;right:14px;width:50px;height:50px;font-size:20px;}
+  .ai-fab-tip{bottom:96px;right:70px;}
+}
+.ai-drawer-backdrop{position:fixed;inset:0;background:rgba(35,31,61,.35);z-index:70;opacity:0;pointer-events:none;transition:opacity .2s;}
+.ai-drawer-backdrop.open{opacity:1;pointer-events:auto;}
+.ai-drawer{position:fixed;right:0;top:0;bottom:0;width:400px;max-width:100vw;background:var(--card);z-index:71;
+  box-shadow:-8px 0 30px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s;}
+.ai-drawer.open{transform:translateX(0);}
+.ai-drawer-hd{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ai-drawer-hd h3{margin:0;font-size:16px;display:flex;align-items:center;gap:8px;}
+.ai-drawer-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--sub);line-height:1;}
+.ai-msgs{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
+.ai-msg{max-width:88%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;}
+.ai-msg.user{align-self:flex-end;background:var(--violet);color:#fff;border-bottom-right-radius:4px;}
+.ai-msg.bot{align-self:flex-start;background:var(--violet-soft);color:var(--ink);border-bottom-left-radius:4px;}
+.ai-msg.bot.typing{color:var(--sub);font-style:italic;}
+.ai-nokey{padding:2px 0 14px;font-size:13px;color:var(--sub);line-height:1.6;}
+.ai-suggest-row{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 12px;flex-shrink:0;}
+.ai-suggest-chip{background:var(--violet-soft);color:var(--violet-deep);border:none;border-radius:999px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;}
+.ai-suggest-chip:hover{background:var(--violet);color:#fff;}
+.ai-input-row{padding:12px 14px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;}
+.ai-input-row textarea{flex:1;border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:13.5px;
+  resize:none;max-height:100px;background:var(--bg);color:var(--ink);font-family:inherit;}
+.ai-input-row button{flex-shrink:0;}
+
 /* ---------- CREATOR FOOTER ---------- */
 .creator-footer{text-align:center;padding:26px 16px 10px;color:var(--sub);font-size:12px;}
 .creator-footer a{color:var(--violet-deep);font-weight:700;text-decoration:none;}
@@ -437,6 +484,22 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 <nav class="tabbar-mobile" id="tabbarMobile"></nav>
 <div id="modalRoot"></div>
 <div class="toast" id="toast"></div>
+
+<button class="ai-fab" id="aiFabBtn" title="Ask your Study Assistant">💬<span class="ai-fab-badge" id="aiFabBadge">✨</span></button>
+<div class="ai-fab-tip" id="aiFabTip">✨ Try free AI study help →</div>
+<div class="ai-drawer-backdrop" id="aiBackdrop"></div>
+<div class="ai-drawer" id="aiDrawer">
+  <div class="ai-drawer-hd">
+    <h3>🧠 Study Assistant</h3>
+    <button class="ai-drawer-close" id="aiCloseBtn">✕</button>
+  </div>
+  <div class="ai-msgs" id="aiMsgs"></div>
+  <div class="ai-suggest-row" id="aiSuggestRow"></div>
+  <div class="ai-input-row">
+    <textarea id="aiInput" rows="1" placeholder="Ask about a concept, revision plan, exam strategy..."></textarea>
+    <button class="btn" id="aiSendBtn">➤</button>
+  </div>
+</div>
 
 <script>
 /* =========================================================
@@ -2852,6 +2915,24 @@ function pageSettings(){
     <button class="btn" style="width:100%;margin-top:10px;" onclick="saveRevisionOffsets()">Save schedule</button>
   </div>
 
+  <div class="section-title">🧠 AI Study Assistant</div>
+  <div class="card" id="aiSettingsCard">
+    <div style="font-size:12.5px;color:var(--sub);margin-bottom:10px;line-height:1.6;">
+      Powers the "Ask" chat button in the bottom-right corner. Runs on your own Anthropic API key —
+      get one free at <a href="https://console.anthropic.com" target="_blank" rel="noopener" style="color:var(--violet-deep);font-weight:700;">console.anthropic.com</a>.
+      The key is saved only in this browser (never included in your backup export) and is sent directly
+      from your device to Anthropic when you ask a question — Ca Karo has no server of its own.
+    </div>
+    <div class="field">
+      <label class="field-label">Anthropic API key</label>
+      <input type="password" id="aiKeyInput" placeholder="${getAIKey()? '•••••••••••••••••••• (saved)' : 'sk-ant-...'}" autocomplete="off">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn" onclick="saveAIKeyFromSettings()">Save key</button>
+      ${getAIKey()? `<button class="btn ghost" onclick="clearAIKeyFromSettings()">Remove key</button>` : ''}
+    </div>
+  </div>
+
   <div class="section-title">Security</div>
   <div class="card">
     <div style="font-size:12.5px;color:var(--sub);margin-bottom:10px;">
@@ -3135,7 +3216,206 @@ function onPinInput(val){
   }
 }
 
+/* ---------- AI STUDY ASSISTANT ----------
+   Calls the Anthropic API directly from this browser using a personal API key the
+   student provides in Settings. The key lives only in localStorage under its own key —
+   deliberately kept out of `state` so it never gets bundled into a shared backup export.
+   Because this is a plain static HTML app with no server, the key is unavoidably visible
+   in this browser's devtools — fine for personal, single-user use on a trusted device;
+   don't reuse a key here that you share with others. */
+const AI_KEY_STORAGE = 'cakaro_ai_key';
+const AI_MODEL = 'claude-sonnet-5';
+let aiChatMessages = []; // {role:'user'|'assistant', content:string}
+let aiSending = false;
+
+/* ---------- Optional shared "free trial" key ----------
+   Leave DEMO_AI_KEY blank (default) to require everyone to bring their own key — the
+   safest option. If you want visitors to be able to try the assistant with zero setup,
+   paste a key of your own here before sharing this file.
+   ⚠️ WARNING: this key ships inside the HTML, so anyone who opens dev tools can read and
+   reuse it OUTSIDE this app too. Only do this with a key you're okay being effectively
+   public, and set a hard monthly spend cap on it in console.anthropic.com. DEMO_DAILY_LIMIT
+   below is a soft, client-side counter (trivially bypassed by clearing localStorage) — it
+   discourages casual overuse, it is not real protection. */
+const DEMO_AI_KEY = ''; // e.g. 'sk-ant-...' — blank means no free trial, BYO-key only
+const DEMO_DAILY_LIMIT = 5; // free messages per browser per day, only used if DEMO_AI_KEY is set
+
+function demoUsageToday(){
+  try{
+    const raw = JSON.parse(localStorage.getItem('cakaro_ai_demo_usage')||'{}');
+    return raw.date===todayISO() ? (raw.count||0) : 0;
+  }catch(e){ return 0; }
+}
+function bumpDemoUsage(){
+  try{ localStorage.setItem('cakaro_ai_demo_usage', JSON.stringify({date:todayISO(), count:demoUsageToday()+1})); }catch(e){}
+}
+function demoRemaining(){ return DEMO_AI_KEY ? Math.max(0, DEMO_DAILY_LIMIT - demoUsageToday()) : 0; }
+/* Resolves which key + mode a chat send should use: the student's own key always wins;
+   otherwise fall back to the shared demo key if one's configured and today's free quota
+   isn't used up yet. */
+function activeAIKey(){
+  const personal = getAIKey();
+  if(personal) return {key:personal, isDemo:false};
+  if(DEMO_AI_KEY && demoRemaining()>0) return {key:DEMO_AI_KEY, isDemo:true};
+  return {key:'', isDemo:false};
+}
+
+function getAIKey(){ try{ return localStorage.getItem(AI_KEY_STORAGE) || ''; }catch(e){ return ''; } }
+function setAIKey(key){ try{ if(key) localStorage.setItem(AI_KEY_STORAGE, key); else localStorage.removeItem(AI_KEY_STORAGE); }catch(e){} }
+function saveAIKeyFromSettings(){
+  const v = document.getElementById('aiKeyInput').value.trim();
+  if(!v){ toast('Enter a key first'); return; }
+  setAIKey(v);
+  toast('API key saved on this device');
+  render();
+}
+function clearAIKeyFromSettings(){
+  if(!confirm('Remove the saved API key from this device?')) return;
+  setAIKey('');
+  toast('API key removed');
+  render();
+}
+
+/* Live, private snapshot of the student's progress — sent only to Anthropic, alongside
+   the question, so the assistant's advice is grounded in real study data. */
+function aiContextSummary(){
+  const keys = activeSubjectKeys();
+  const ss = syllabusStats(keys);
+  const dte = daysToExam();
+  const due = revisionsDue();
+  const weak = keys.map(k=>{
+    const chs = state.chapters[k]; const done = chs.filter(c=>c.firstRead).length;
+    return {name:SUBJECTS[k].name, pct: chs.length? Math.round(100*done/chs.length):0};
+  }).sort((a,b)=>a.pct-b.pct).slice(0,3);
+  return `Student is preparing for CA Inter${state.profile.group && state.profile.group!=='BOTH'? ' ('+GROUP_LABELS[state.profile.group]+')':''}.
+Days to exam: ${dte===null?'not set':dte}.
+Overall syllabus completion: ${ss.total? Math.round(100*ss.done/ss.total):0}% (${ss.done}/${ss.total} chapters).
+Revisions currently due/overdue: ${due.length}.
+Weakest subjects right now: ${weak.map(w=>w.name+' ('+w.pct+'%)').join(', ')||'n/a'}.`;
+}
+
+const AI_SUGGESTIONS = [
+  "Plan my revision for this week",
+  "Explain a topic I'm stuck on",
+  "I'm behind schedule — what should I cut?",
+  "Quiz me on my weakest subject"
+];
+function openAIDrawer(){
+  document.getElementById('aiDrawer').classList.add('open');
+  document.getElementById('aiBackdrop').classList.add('open');
+  markAIWidgetSeen(); // stop the pulse/tooltip once they've actually opened it
+  renderAIMessages();
+  setTimeout(()=> document.getElementById('aiInput')?.focus(), 200);
+}
+function closeAIDrawer(){
+  document.getElementById('aiDrawer').classList.remove('open');
+  document.getElementById('aiBackdrop').classList.remove('open');
+}
+function renderAISuggestChips(){
+  const row = document.getElementById('aiSuggestRow');
+  if(!row) return;
+  row.innerHTML = (!aiChatMessages.length && activeAIKey().key)? AI_SUGGESTIONS.map(s=>`<button class="ai-suggest-chip" data-q="${escapeHtml(s)}">${s}</button>`).join('') : '';
+  row.querySelectorAll('.ai-suggest-chip').forEach(b=> b.onclick = ()=>{ document.getElementById('aiInput').value = b.dataset.q; sendAIMessage(); });
+}
+function renderAIMessages(){
+  const wrap = document.getElementById('aiMsgs');
+  if(!wrap) return;
+  const {key, isDemo} = activeAIKey();
+  if(!key){
+    const outOfFreeQuota = DEMO_AI_KEY && demoRemaining()===0 && !getAIKey();
+    wrap.innerHTML = `<div class="ai-nokey">
+      👋 Hey! I'm your study assistant — ask me to explain a topic, plan a revision session, or help when you're stuck on something.<br><br>
+      ${outOfFreeQuota
+        ? `You've used today's ${DEMO_DAILY_LIMIT} free questions. They reset tomorrow, or add your own key for unlimited access —`
+        : `To turn me on, add your own free Anthropic API key once —`}
+      in <a style="color:var(--violet-deep);font-weight:700;cursor:pointer;" onclick="closeAIDrawer();go('settings');setTimeout(()=>document.getElementById('aiSettingsCard')?.scrollIntoView({behavior:'smooth',block:'center'}),150);">Settings → AI Study Assistant</a>. It stays on this device only.
+    </div>`;
+    renderAISuggestChips();
+    return;
+  }
+  const quotaNote = isDemo? `<div class="ai-nokey" style="padding-bottom:6px;">✨ Free trial — ${demoRemaining()} question${demoRemaining()===1?'':'s'} left today. <a style="color:var(--violet-deep);font-weight:700;cursor:pointer;" onclick="closeAIDrawer();go('settings');setTimeout(()=>document.getElementById('aiSettingsCard')?.scrollIntoView({behavior:'smooth',block:'center'}),150);">Add your own key</a> for unlimited.</div>` : '';
+  wrap.innerHTML = quotaNote + aiChatMessages.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'bot'}">${escapeHtml(m.content)}</div>`).join('')
+    + (aiSending? `<div class="ai-msg bot typing">thinking…</div>` : '');
+  wrap.scrollTop = wrap.scrollHeight;
+  renderAISuggestChips();
+}
+async function sendAIMessage(){
+  if(aiSending) return;
+  const input = document.getElementById('aiInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const {key, isDemo} = activeAIKey();
+  if(!key){ renderAIMessages(); return; }
+  input.value = ''; input.style.height = 'auto';
+  aiChatMessages.push({role:'user', content:text});
+  aiSending = true;
+  renderAIMessages();
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        max_tokens: 700,
+        system: `You are the Study Assistant inside "Ca Karo", a CA Inter exam-prep tracker app. Help the student with concept explanations, revision planning, exam strategy, and motivation. Be concise, practical, and encouraging — this is a chat bubble, not an essay. Use the student's live progress data below when it's relevant, but don't recite it back unless asked.\n\n${aiContextSummary()}`,
+        messages: aiChatMessages.map(m=>({role:m.role, content:m.content}))
+      })
+    });
+    if(!res.ok){
+      let detail = '';
+      try{ detail = (await res.json()).error?.message || ''; }catch(e){}
+      throw new Error(res.status===401? 'Invalid API key — check it in Settings.' : (detail || ('API error '+res.status)));
+    }
+    const data = await res.json();
+    const reply = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim() || "Sorry, I couldn't generate a reply — try again.";
+    aiChatMessages.push({role:'assistant', content:reply});
+    if(isDemo) bumpDemoUsage();
+  }catch(err){
+    aiChatMessages.push({role:'assistant', content:'⚠️ '+(err.message||'Could not reach the AI — check your connection.')});
+  }
+  aiSending = false;
+  renderAIMessages();
+}
+/* Draws attention to the AI button until the student actually opens it once —
+   pulsing glow, a small badge, and a one-time tooltip bubble. */
+function aiWidgetSeen(){ try{ return localStorage.getItem('cakaro_ai_seen')==='1'; }catch(e){ return false; } }
+function markAIWidgetSeen(){
+  try{ localStorage.setItem('cakaro_ai_seen','1'); }catch(e){}
+  document.getElementById('aiFabBtn')?.classList.remove('highlight');
+  hideAITip();
+}
+function showAITip(){
+  const tip = document.getElementById('aiFabTip');
+  if(!tip) return;
+  tip.classList.add('show');
+  setTimeout(hideAITip, 6000);
+}
+function hideAITip(){ document.getElementById('aiFabTip')?.classList.remove('show'); }
+function initAIWidget(){
+  document.getElementById('aiFabBtn').onclick = openAIDrawer;
+  document.getElementById('aiFabTip').onclick = openAIDrawer;
+  document.getElementById('aiCloseBtn').onclick = closeAIDrawer;
+  document.getElementById('aiBackdrop').onclick = closeAIDrawer;
+  const input = document.getElementById('aiInput');
+  input.addEventListener('input', ()=>{ input.style.height='auto'; input.style.height = Math.min(100, input.scrollHeight)+'px'; });
+  input.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendAIMessage(); } });
+  document.getElementById('aiSendBtn').onclick = sendAIMessage;
+  if(!aiWidgetSeen()){
+    document.getElementById('aiFabBtn').classList.add('highlight');
+    document.getElementById('aiFabBadge').style.display = 'flex';
+    setTimeout(showAITip, 1200);
+  } else {
+    document.getElementById('aiFabBadge').style.display = 'none';
+  }
+}
+
 restoreActiveSessionOnLoad();
+initAIWidget();
 if(needsUnlock()){
   renderLockScreen();
 } else {
