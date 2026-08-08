@@ -3217,67 +3217,51 @@ function onPinInput(val){
 }
 
 /* ---------- AI STUDY ASSISTANT ----------
-   Calls the Anthropic API directly from this browser using a personal API key the
-   student provides in Settings. The key lives only in localStorage under its own key —
-   deliberately kept out of `state` so it never gets bundled into a shared backup export.
-   Because this is a plain static HTML app with no server, the key is unavoidably visible
-   in this browser's devtools — fine for personal, single-user use on a trusted device;
-   don't reuse a key here that you share with others. */
-const AI_KEY_STORAGE = 'cakaro_ai_key';
-const AI_MODEL = 'claude-sonnet-5';
+   Multi-provider: pick "Free" (default) for a small open model that runs entirely on
+   the student's own device via transformers.js — genuinely free, no key, no account,
+   works after the first download even offline. Or plug in a personal key for Anthropic
+   Claude, OpenAI, or Google Gemini for a bigger, faster model. Every key lives only in
+   this browser's localStorage under its own storage key — deliberately kept out of
+   `state` so nothing AI-related is ever bundled into a shared backup export. */
+const AI_PROVIDERS = {
+  anthropic:{ label:'Anthropic Claude', placeholder:'sk-ant-...', keyStore:'cakaro_ai_key_anthropic', consoleUrl:'https://console.anthropic.com', consoleHost:'console.anthropic.com' },
+  openai:   { label:'OpenAI ChatGPT',   placeholder:'sk-...',     keyStore:'cakaro_ai_key_openai',    consoleUrl:'https://platform.openai.com/api-keys', consoleHost:'platform.openai.com' },
+  gemini:   { label:'Google Gemini',    placeholder:'AIza...',    keyStore:'cakaro_ai_key_gemini',    consoleUrl:'https://aistudio.google.com/apikey', consoleHost:'aistudio.google.com' }
+};
 let aiChatMessages = []; // {role:'user'|'assistant', content:string}
 let aiSending = false;
+let freeModelPipeline = null; // cached transformers.js pipeline, loaded once
+let freeModelLoading = false;
 
-/* ---------- Optional shared "free trial" key ----------
-   Leave DEMO_AI_KEY blank (default) to require everyone to bring their own key — the
-   safest option. If you want visitors to be able to try the assistant with zero setup,
-   paste a key of your own here before sharing this file.
-   ⚠️ WARNING: this key ships inside the HTML, so anyone who opens dev tools can read and
-   reuse it OUTSIDE this app too. Only do this with a key you're okay being effectively
-   public, and set a hard monthly spend cap on it in console.anthropic.com. DEMO_DAILY_LIMIT
-   below is a soft, client-side counter (trivially bypassed by clearing localStorage) — it
-   discourages casual overuse, it is not real protection. */
-const DEMO_AI_KEY = ''; // e.g. 'sk-ant-...' — blank means no free trial, BYO-key only
-const DEMO_DAILY_LIMIT = 5; // free messages per browser per day, only used if DEMO_AI_KEY is set
+function currentAIProvider(){ return state.settings.aiProvider || 'free'; }
+function getProviderKey(p){ try{ return localStorage.getItem(AI_PROVIDERS[p].keyStore) || ''; }catch(e){ return ''; } }
+function setProviderKey(p, key){ try{ if(key) localStorage.setItem(AI_PROVIDERS[p].keyStore, key); else localStorage.removeItem(AI_PROVIDERS[p].keyStore); }catch(e){} }
+/* Whether the currently-selected provider is actually ready to answer right now. */
+function aiIsReady(){ const p = currentAIProvider(); return p==='free' ? true : !!getProviderKey(p); }
 
-function demoUsageToday(){
-  try{
-    const raw = JSON.parse(localStorage.getItem('cakaro_ai_demo_usage')||'{}');
-    return raw.date===todayISO() ? (raw.count||0) : 0;
-  }catch(e){ return 0; }
-}
-function bumpDemoUsage(){
-  try{ localStorage.setItem('cakaro_ai_demo_usage', JSON.stringify({date:todayISO(), count:demoUsageToday()+1})); }catch(e){}
-}
-function demoRemaining(){ return DEMO_AI_KEY ? Math.max(0, DEMO_DAILY_LIMIT - demoUsageToday()) : 0; }
-/* Resolves which key + mode a chat send should use: the student's own key always wins;
-   otherwise fall back to the shared demo key if one's configured and today's free quota
-   isn't used up yet. */
-function activeAIKey(){
-  const personal = getAIKey();
-  if(personal) return {key:personal, isDemo:false};
-  if(DEMO_AI_KEY && demoRemaining()>0) return {key:DEMO_AI_KEY, isDemo:true};
-  return {key:'', isDemo:false};
-}
-
-function getAIKey(){ try{ return localStorage.getItem(AI_KEY_STORAGE) || ''; }catch(e){ return ''; } }
-function setAIKey(key){ try{ if(key) localStorage.setItem(AI_KEY_STORAGE, key); else localStorage.removeItem(AI_KEY_STORAGE); }catch(e){} }
-function saveAIKeyFromSettings(){
-  const v = document.getElementById('aiKeyInput').value.trim();
-  if(!v){ toast('Enter a key first'); return; }
-  setAIKey(v);
-  toast('API key saved on this device');
+function onAIProviderSelectChange(){ render(); } // just re-render Settings so the right key field shows; nothing saved yet
+function saveAIProvider(){
+  const prov = document.getElementById('aiProviderSelect').value;
+  if(prov!=='free'){
+    const input = document.getElementById('aiKeyInput');
+    const v = input? input.value.trim() : '';
+    if(v) setProviderKey(prov, v);
+    if(!getProviderKey(prov)){ toast('Enter an API key first'); return; }
+  }
+  state.settings.aiProvider = prov;
+  save();
+  toast(prov==='free' ? 'Using the free on-device assistant' : 'Saved — now using '+AI_PROVIDERS[prov].label);
   render();
 }
-function clearAIKeyFromSettings(){
-  if(!confirm('Remove the saved API key from this device?')) return;
-  setAIKey('');
-  toast('API key removed');
+function clearProviderKey(p){
+  if(!confirm('Remove this API key from your device?')) return;
+  setProviderKey(p, '');
+  toast('Key removed');
   render();
 }
 
-/* Live, private snapshot of the student's progress — sent only to Anthropic, alongside
-   the question, so the assistant's advice is grounded in real study data. */
+/* Live, private snapshot of the student's progress — sent only to whichever AI provider
+   is active, alongside the question, so answers are grounded in real study data. */
 function aiContextSummary(){
   const keys = activeSubjectKeys();
   const ss = syllabusStats(keys);
@@ -3292,6 +3276,88 @@ Days to exam: ${dte===null?'not set':dte}.
 Overall syllabus completion: ${ss.total? Math.round(100*ss.done/ss.total):0}% (${ss.done}/${ss.total} chapters).
 Revisions currently due/overdue: ${due.length}.
 Weakest subjects right now: ${weak.map(w=>w.name+' ('+w.pct+'%)').join(', ')||'n/a'}.`;
+}
+function aiSystemPrompt(){
+  return `You are the Study Assistant inside "Ca Karo", a CA Inter exam-prep tracker app. Help the student with concept explanations, revision planning, exam strategy, and motivation. Be concise, practical, and encouraging — this is a chat bubble, not an essay. Use the student's live progress data below when it's relevant, but don't recite it back unless asked.\n\n${aiContextSummary()}`;
+}
+
+/* ---- Provider: Free / on-device (transformers.js, no key, no server) ---- */
+async function loadFreeModel(onProgress){
+  if(freeModelPipeline) return freeModelPipeline;
+  const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2');
+  freeModelPipeline = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
+    dtype:'q4',
+    progress_callback: (p)=>{ if(p.status==='progress' && onProgress) onProgress(Math.round(p.progress||0)); }
+  });
+  return freeModelPipeline;
+}
+async function callFreeModel(messages){
+  freeModelLoading = true;
+  renderAIMessages();
+  const gen = await loadFreeModel((pct)=>{ freeModelLoadPct = pct; renderAIMessages(); });
+  freeModelLoading = false;
+  const chat = [{role:'system', content: aiSystemPrompt()}, ...messages];
+  const out = await gen(chat, { max_new_tokens: 350, temperature: 0.7, do_sample: true });
+  const turns = out[0].generated_text;
+  return turns[turns.length-1].content.trim();
+}
+
+/* ---- Provider: Anthropic Claude ---- */
+async function callAnthropic(messages, key){
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'x-api-key': key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+    body: JSON.stringify({ model:'claude-sonnet-5', max_tokens:700, system: aiSystemPrompt(), messages: messages.map(m=>({role:m.role, content:m.content})) })
+  });
+  if(!res.ok){
+    let detail=''; try{ detail = (await res.json()).error?.message || ''; }catch(e){}
+    throw new Error(res.status===401? 'Invalid Anthropic key — check Settings.' : (detail || ('API error '+res.status)));
+  }
+  const data = await res.json();
+  return (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+}
+
+/* ---- Provider: OpenAI ---- */
+async function callOpenAI(messages, key){
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+key },
+    body: JSON.stringify({ model:'gpt-4o-mini', max_tokens:700, messages:[{role:'system', content: aiSystemPrompt()}, ...messages.map(m=>({role:m.role, content:m.content}))] })
+  });
+  if(!res.ok){
+    let detail=''; try{ detail = (await res.json()).error?.message || ''; }catch(e){}
+    throw new Error(res.status===401? 'Invalid OpenAI key — check Settings.' : (detail || ('API error '+res.status)));
+  }
+  const data = await res.json();
+  return (data.choices?.[0]?.message?.content || '').trim();
+}
+
+/* ---- Provider: Google Gemini ---- */
+async function callGemini(messages, key){
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`, {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({
+      systemInstruction:{ parts:[{text: aiSystemPrompt()}] },
+      contents: messages.map(m=>({ role: m.role==='assistant' ? 'model' : 'user', parts:[{text:m.content}] }))
+    })
+  });
+  if(!res.ok){
+    let detail=''; try{ detail = (await res.json()).error?.message || ''; }catch(e){}
+    throw new Error(res.status===400 || res.status===401 || res.status===403 ? 'Invalid Gemini key — check Settings.' : (detail || ('API error '+res.status)));
+  }
+  const data = await res.json();
+  return (data.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+}
+
+async function callAI(messages){
+  const p = currentAIProvider();
+  if(p==='free') return callFreeModel(messages);
+  const key = getProviderKey(p);
+  if(!key) throw new Error('No API key saved for '+AI_PROVIDERS[p].label+'.');
+  if(p==='anthropic') return callAnthropic(messages, key);
+  if(p==='openai') return callOpenAI(messages, key);
+  if(p==='gemini') return callGemini(messages, key);
 }
 
 const AI_SUGGESTIONS = [
@@ -3314,28 +3380,27 @@ function closeAIDrawer(){
 function renderAISuggestChips(){
   const row = document.getElementById('aiSuggestRow');
   if(!row) return;
-  row.innerHTML = (!aiChatMessages.length && activeAIKey().key)? AI_SUGGESTIONS.map(s=>`<button class="ai-suggest-chip" data-q="${escapeHtml(s)}">${s}</button>`).join('') : '';
+  row.innerHTML = (!aiChatMessages.length && aiIsReady())? AI_SUGGESTIONS.map(s=>`<button class="ai-suggest-chip" data-q="${escapeHtml(s)}">${s}</button>`).join('') : '';
   row.querySelectorAll('.ai-suggest-chip').forEach(b=> b.onclick = ()=>{ document.getElementById('aiInput').value = b.dataset.q; sendAIMessage(); });
 }
+let freeModelLoadPct = 0;
 function renderAIMessages(){
   const wrap = document.getElementById('aiMsgs');
   if(!wrap) return;
-  const {key, isDemo} = activeAIKey();
-  if(!key){
-    const outOfFreeQuota = DEMO_AI_KEY && demoRemaining()===0 && !getAIKey();
+  const prov = currentAIProvider();
+  if(!aiIsReady()){
     wrap.innerHTML = `<div class="ai-nokey">
       👋 Hey! I'm your study assistant — ask me to explain a topic, plan a revision session, or help when you're stuck on something.<br><br>
-      ${outOfFreeQuota
-        ? `You've used today's ${DEMO_DAILY_LIMIT} free questions. They reset tomorrow, or add your own key for unlimited access —`
-        : `To turn me on, add your own free Anthropic API key once —`}
-      in <a style="color:var(--violet-deep);font-weight:700;cursor:pointer;" onclick="closeAIDrawer();go('settings');setTimeout(()=>document.getElementById('aiSettingsCard')?.scrollIntoView({behavior:'smooth',block:'center'}),150);">Settings → AI Study Assistant</a>. It stays on this device only.
+      Add a free API key for ${AI_PROVIDERS[prov]?.label||'your provider'} once in <a style="color:var(--violet-deep);font-weight:700;cursor:pointer;" onclick="closeAIDrawer();go('settings');setTimeout(()=>document.getElementById('aiSettingsCard')?.scrollIntoView({behavior:'smooth',block:'center'}),150);">Settings → AI Study Assistant</a> — or switch the provider there to <b>Free (on-device)</b>, no key needed at all.
     </div>`;
     renderAISuggestChips();
     return;
   }
-  const quotaNote = isDemo? `<div class="ai-nokey" style="padding-bottom:6px;">✨ Free trial — ${demoRemaining()} question${demoRemaining()===1?'':'s'} left today. <a style="color:var(--violet-deep);font-weight:700;cursor:pointer;" onclick="closeAIDrawer();go('settings');setTimeout(()=>document.getElementById('aiSettingsCard')?.scrollIntoView({behavior:'smooth',block:'center'}),150);">Add your own key</a> for unlimited.</div>` : '';
-  wrap.innerHTML = quotaNote + aiChatMessages.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'bot'}">${escapeHtml(m.content)}</div>`).join('')
-    + (aiSending? `<div class="ai-msg bot typing">thinking…</div>` : '');
+  const freeNote = (prov==='free' && !aiChatMessages.length && !freeModelLoading)
+    ? `<div class="ai-nokey" style="padding-bottom:6px;">🆓 Free mode — runs right on your device, no key, no account. First reply downloads a small model (~300MB, one-time, cached after that).</div>` : '';
+  wrap.innerHTML = freeNote + aiChatMessages.map(m=>`<div class="ai-msg ${m.role==='user'?'user':'bot'}">${escapeHtml(m.content)}</div>`).join('')
+    + (freeModelLoading? `<div class="ai-msg bot typing">downloading on-device model… ${freeModelLoadPct}%</div>` : '')
+    + (aiSending && !freeModelLoading? `<div class="ai-msg bot typing">thinking…</div>` : '');
   wrap.scrollTop = wrap.scrollHeight;
   renderAISuggestChips();
 }
@@ -3344,41 +3409,18 @@ async function sendAIMessage(){
   const input = document.getElementById('aiInput');
   const text = input.value.trim();
   if(!text) return;
-  const {key, isDemo} = activeAIKey();
-  if(!key){ renderAIMessages(); return; }
+  if(!aiIsReady()){ renderAIMessages(); return; }
   input.value = ''; input.style.height = 'auto';
   aiChatMessages.push({role:'user', content:text});
   aiSending = true;
   renderAIMessages();
   try{
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': key,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        max_tokens: 700,
-        system: `You are the Study Assistant inside "Ca Karo", a CA Inter exam-prep tracker app. Help the student with concept explanations, revision planning, exam strategy, and motivation. Be concise, practical, and encouraging — this is a chat bubble, not an essay. Use the student's live progress data below when it's relevant, but don't recite it back unless asked.\n\n${aiContextSummary()}`,
-        messages: aiChatMessages.map(m=>({role:m.role, content:m.content}))
-      })
-    });
-    if(!res.ok){
-      let detail = '';
-      try{ detail = (await res.json()).error?.message || ''; }catch(e){}
-      throw new Error(res.status===401? 'Invalid API key — check it in Settings.' : (detail || ('API error '+res.status)));
-    }
-    const data = await res.json();
-    const reply = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim() || "Sorry, I couldn't generate a reply — try again.";
-    aiChatMessages.push({role:'assistant', content:reply});
-    if(isDemo) bumpDemoUsage();
+    const reply = await callAI(aiChatMessages);
+    aiChatMessages.push({role:'assistant', content: reply || "Sorry, I couldn't generate a reply — try again."});
   }catch(err){
     aiChatMessages.push({role:'assistant', content:'⚠️ '+(err.message||'Could not reach the AI — check your connection.')});
   }
-  aiSending = false;
+  aiSending = false; freeModelLoading = false;
   renderAIMessages();
 }
 /* Draws attention to the AI button until the student actually opens it once —
