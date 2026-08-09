@@ -1103,7 +1103,7 @@ function pageToday(name){
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="btn ghost" onclick="openQuickComplete()">⚡ Log past session</button>
       <button class="btn" onclick="go('session')">+ Start session</button>
-      ${hwDueOrOverdue().length? `<button class="hw-bell-btn" onclick="openHWNotifications()" title="${hwDueOrOverdue().length} homework item${hwDueOrOverdue().length===1?'':'s'} pending — tap to view">🔔<span class="start-session-badge">${hwDueOrOverdue().length}</span></button>`:''}
+      ${hwDueOrOverdue().length? `<button class="hw-bell-btn" onclick="openHWNotifications()" title="${hwDueOrOverdue().length} homework item${hwDueOrOverdue().length===1?'':'s'} pending — tap to view">📝<span class="start-session-badge">${hwDueOrOverdue().length}</span></button>`:''}
     </div>
   </div>
 
@@ -1944,7 +1944,8 @@ function showPendingHWPopup(){
           <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
           <div style="flex:1;min-width:0;">
             <b>${SUBJECTS[e.subject].name}</b>${e.chapter? ' · '+e.chapter:''}
-            <br><span style="color:var(--sub);font-size:12.5px;">${comp}/${total} done · ${left} left</span>
+            ${e.topic? `<br><span class="hw-topic-small">${e.topic}</span>`:''}
+            <br><span style="color:var(--sub);font-size:12.5px;">${comp}/${total} done · ${left} left</span>${e.questionRange? ` <span class="hw-qcount">${e.questionRange}</span>`:''}
           </div>
           <button class="btn ghost sm" onclick="hwMarkDone('${e.id}');showPendingHWPopup();">Mark done</button>
         </div>`;
