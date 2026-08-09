@@ -201,6 +201,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 .hw-rev-split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid var(--violet);border-radius:16px;overflow:hidden;margin-bottom:16px;}
 .hw-rev-col{background:var(--card);padding:14px 16px;min-width:0;}
 .hw-rev-col+.hw-rev-col{border-left:1px solid var(--line);}
+/* Below 900px the two columns stack full-width instead of squeezing side by side — this rule
+   must come AFTER the base .hw-rev-split declaration above, or the cascade silently drops it
+   (equal specificity, later source order wins even when the earlier rule is behind a media query). */
 @media(max-width:900px){
   .hw-rev-split{grid-template-columns:1fr;}
   .hw-rev-col+.hw-rev-col{border-left:none;border-top:1px solid var(--line);}
@@ -970,7 +973,7 @@ const ROUTES = [
   {id:'finalrev', label:'Exam Countdown Plan', icon:'🏁', group:'plan'},
   {id:'strategy', label:'Strategy', icon:'🧠', group:'plan'},
   {id:'flashpoints', label:'Flashpoints', icon:'⚡', group:'reference'},
-  {id:'timeline', label:'History', icon:'📆', group:'reference'},
+  {id:'timeline', label:'History', icon:'🕘', group:'reference'},
   {id:'settings', label:'Settings', icon:'⚙️', group:'reference'}
 ];
 const NAV_GROUP_LABELS = {track:'Track', plan:'Plan', reference:'Reference'};
@@ -1286,7 +1289,10 @@ function pageSession(){
   return `
   <div class="topbar"><div class="greet"><h1>Start a session</h1><p>Pick an activity — date & time fill in automatically.</p></div></div>
   <div class="quote-card">💭 ${todaysQuote()}</div>
-  <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="openQuickComplete()">⚡ Quick-complete a past session</a>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="openQuickComplete()">⚡ Quick-complete a past session</a>
+    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="go('timeline')">🕘 View session history</a>
+  </div>
   <div class="activity-grid">
     ${ACTIVITIES.map(a=>`
       <div class="activity-card" style="--act-color:${a.color};--act-soft:${a.soft};" onclick="pickActivity('${a.id}')">
@@ -2463,10 +2469,7 @@ function todoCardHTML(){
       ${revBody}
     </div>
   </div>
-  <div style="display:flex;justify-content:flex-end;gap:16px;flex-wrap:wrap;margin:-8px 0 16px;">
-    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:12.5px;" onclick="go('timeline')">📜 View past session &amp; lecture history →</a>
-    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:12.5px;" onclick="go('revisions')">🗓️ Open revision calendar →</a>
-  </div>`;
+  <div style="text-align:right;margin:-8px 0 16px;"><a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:12.5px;" onclick="go('revisions')">🗓️ Open revision calendar →</a></div>`;
 }
 /* "Add to phone" — generates a standard .ics calendar file for the homework's due date.
    Opening it prompts the phone's Calendar/Reminders app to add an event — works fully
@@ -2694,35 +2697,42 @@ function exportFlashpoints(){
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='flashpoints.csv'; a.click();
 }
 
-/* ---------- TIMELINE / HISTORY (past sessions & lectures) ---------- */
-let tlSubjectFilter = 'all';
-let tlActivityFilter = 'all';
-function tlSetSubject(k){ tlSubjectFilter=k; render(); }
-function tlSetActivity(a){ tlActivityFilter=a; render(); }
+/* ---------- TIMELINE / SESSION HISTORY ---------- */
+let tlSubjFilter = "All";
+let tlSearch = "";
+function tlSetSubj(s){ tlSubjFilter=s; render(); }
+function tlSetSearch(v){ tlSearch=v; render(); }
 function pageTimeline(){
-  let sessions = state.sessions.slice();
-  if(tlSubjectFilter!=='all') sessions = sessions.filter(s=>s.subject===tlSubjectFilter);
-  if(tlActivityFilter!=='all') sessions = sessions.filter(s=>s.activity===tlActivityFilter);
-
+  let list = state.sessions.slice();
+  if(tlSubjFilter!=='All') list = list.filter(s=>s.subject===tlSubjFilter);
+  if(tlSearch.trim()){
+    const q = tlSearch.trim().toLowerCase();
+    list = list.filter(s=> (s.chapter||'').toLowerCase().includes(q) || (s.topic||'').toLowerCase().includes(q) || SUBJECTS[s.subject].name.toLowerCase().includes(q));
+  }
   const byDay = {};
-  sessions.forEach(s=>{ const d=s.start.slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
+  list.forEach(s=>{ const d=s.start.slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
   const days = Object.keys(byDay).sort().reverse();
-  const keys = activeSubjectKeys();
+  const totalMin = list.reduce((s,x)=>s+(x.durationMin||0),0);
 
   return `
-  <div class="topbar"><div class="greet"><h1>History</h1><p>Every past session and lecture, placed by time of day. Length = real study time.</p></div></div>
-  <div class="chiprow">
-    <span class="chip ${tlSubjectFilter==='all'?'active':''}" onclick="tlSetSubject('all')">All subjects</span>
-    ${keys.map(k=>`<span class="chip ${tlSubjectFilter===k?'active':''}" onclick="tlSetSubject('${k}')"><span class="dot" style="background:${SUBJECTS[k].color}"></span>${k}</span>`).join('')}
+  <div class="topbar"><div class="greet"><h1>Session History</h1><p>Every lecture, reading and revision you've logged — searchable and filterable.</p></div></div>
+
+  <div class="hw-top-strip">
+    <div class="hw-top-cell card"><div class="hw-top-val">${list.length}</div><div class="hw-top-label">Sessions</div></div>
+    <div class="hw-top-cell card"><div class="hw-top-val">${minToHM(totalMin)}</div><div class="hw-top-label">Total time</div></div>
+    <div class="hw-top-cell card"><div class="hw-top-val">${days.length}</div><div class="hw-top-label">Days active</div></div>
   </div>
-  <div class="chiprow" style="margin-top:-6px;">
-    <span class="chip ${tlActivityFilter==='all'?'active':''}" onclick="tlSetActivity('all')">All activities</span>
-    ${ACTIVITIES.map(a=>`<span class="chip ${tlActivityFilter===a.id?'active':''}" onclick="tlSetActivity('${a.id}')">${a.icon} ${a.label}</span>`).join('')}
+
+  <input type="text" placeholder="🔍 Search by chapter, topic or subject…" value="${escapeHtml(tlSearch)}" oninput="tlSetSearch(this.value)" style="width:100%;margin-bottom:10px;">
+
+  <div class="chiprow" style="margin-top:0;">
+    ${["All",...activeSubjectKeys()].map(s=>`<span class="chip ${tlSubjFilter===s?'active':''}" onclick="tlSetSubj('${s}')">${s}</span>`).join('')}
   </div>
+
   ${days.length? days.map(d=>`
-    <div class="section-title" style="margin:20px 0 8px;">${fmtDate(d)} <span class="hint">${minToHM(byDay[d].reduce((s,x)=>s+(x.durationMin||0),0))}</span></div>
-    <div class="card">${byDay[d].sort((a,b)=>a.start.localeCompare(b.start)).map(sessionRowHTML).join('')}</div>
-  `).join('') : `<div class="empty"><div class="big">📆</div><h3>No sessions yet</h3><p>${state.sessions.length? 'Nothing matches this filter.' : 'Start one from the Session tab.'}</p></div>`}
+    <div class="section-title" style="margin:20px 0 8px;">${d===todayISO()?'Today':fmtDate(d)} <span class="hint">${minToHM(byDay[d].reduce((s,x)=>s+(x.durationMin||0),0))}</span></div>
+    <div class="card">${byDay[d].sort((a,b)=>b.start.localeCompare(a.start)).map(sessionRowHTML).join('')}</div>
+  `).join('') : `<div class="empty"><div class="big">📆</div><h3>No sessions found</h3><p>${state.sessions.length? 'Try a different search or filter.' : 'Start one from the Session tab.'}</p></div>`}
   `;
 }
 
