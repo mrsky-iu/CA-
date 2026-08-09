@@ -1280,7 +1280,7 @@ function sessionRowHTML(s){
   const a = ACTIVITIES.find(x=>x.id===s.activity);
   return `<div class="list-row">
     <div style="width:34px;height:34px;border-radius:10px;background:var(--violet-soft);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${a?a.icon:'📘'}</div>
-    <div style="flex:1;min-width:0;"><b>${SUBJECTS[s.subject].name}</b>${s.chapter? ' · '+s.chapter:''}${s.topic? `<br><span style="color:var(--violet-deep);font-size:12px;font-weight:600;">📝 ${s.topic}</span>`:''}<br><span style="color:var(--sub);font-size:12.5px">${a?a.label:''} · ${s.status==='complete'?'Completed':'In progress'}</span></div>
+    <div style="flex:1;min-width:0;"><b>${SUBJECTS[s.subject].name}</b>${s.chapter? ' · '+s.chapter:''}${s.topic? `<br><span style="color:var(--violet-deep);font-size:12px;font-weight:600;">📝 ${s.topic}</span>`:''}<br><span style="color:var(--sub);font-size:12.5px">${a?a.label:''} · ${s.status==='complete'?'Completed':'In progress'}${s.mode==='quick'? ' · <span style="color:var(--violet-deep);font-weight:700;">⚡ Quick</span>':''}</span></div>
     <div style="font-weight:700;font-size:13.5px;flex-shrink:0;">${s.durationMin?minToHM(s.durationMin):'—'}</div>
     <button class="sess-edit-btn" onclick="editSession('${s.id}')" title="Edit topic or duration">✏️</button>
   </div>`;
@@ -1323,6 +1323,8 @@ function pageSession(){
   <div class="topbar"><div class="greet"><h1>Start a session</h1><p>Pick an activity — date & time fill in automatically.</p></div></div>
   <div class="quote-card">💭 ${todaysQuote()}</div>
   <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="openQuickComplete()">⚡ Quick-complete a past session</a>
+  <br>
+  <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="go('timeline')">🕓 View history — all past sessions, quick & lecture</a>
   <div class="activity-grid">
     ${ACTIVITIES.map(a=>`
       <div class="activity-card" style="--act-color:${a.color};--act-soft:${a.soft};" onclick="pickActivity('${a.id}')">
@@ -2985,12 +2987,32 @@ function exportFlashpoints(){
 }
 
 /* ---------- TIMELINE ---------- */
+let tlSubjectFilter = 'ALL';
+let tlModeFilter = 'ALL'; // 'ALL' | 'quick' | 'live'
+function tlSetSubject(v){ tlSubjectFilter=v; render(); }
+function tlSetMode(v){ tlModeFilter=v; render(); }
 function pageTimeline(){
+  let sessions = state.sessions;
+  if(tlSubjectFilter!=='ALL') sessions = sessions.filter(s=>s.subject===tlSubjectFilter);
+  if(tlModeFilter!=='ALL') sessions = sessions.filter(s=> tlModeFilter==='quick'? s.mode==='quick' : s.mode!=='quick');
   const byDay = {};
-  state.sessions.forEach(s=>{ const d=s.start.slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
+  sessions.forEach(s=>{ const d=s.start.slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
   const days = Object.keys(byDay).sort().reverse();
+  const totalMin = sessions.reduce((s,x)=>s+(x.durationMin||0),0);
   return `
-  <div class="topbar"><div class="greet"><h1>Timeline</h1><p>Every session placed by time of day. Length = real study time.</p></div></div>
+  <div class="topbar"><div class="greet"><h1>Timeline</h1><p>Every session — quick-logged and full lecture sessions — placed by time of day.</p></div></div>
+
+  <div class="qrp-chip-row">
+    <span class="qrp-chip ${tlSubjectFilter==='ALL'?'on':''}" onclick="tlSetSubject('ALL')">All subjects</span>
+    ${activeSubjectKeys().map(k=>`<span class="qrp-chip ${tlSubjectFilter===k?'on':''}" onclick="tlSetSubject('${k}')">${SUBJECTS[k].name}</span>`).join('')}
+  </div>
+  <div class="qrp-chip-row">
+    <span class="qrp-chip ${tlModeFilter==='ALL'?'on':''}" onclick="tlSetMode('ALL')">All types</span>
+    <span class="qrp-chip ${tlModeFilter==='live'?'on':''}" onclick="tlSetMode('live')">🎥 Lecture / timed</span>
+    <span class="qrp-chip ${tlModeFilter==='quick'?'on':''}" onclick="tlSetMode('quick')">⚡ Quick sessions</span>
+  </div>
+  <p style="color:var(--sub);font-size:12.5px;margin:-4px 0 6px;">${sessions.length} session${sessions.length===1?'':'s'} · ${minToHM(totalMin)} total</p>
+
   ${days.length? days.map(d=>`
     <div class="section-title" style="margin:20px 0 8px;">${fmtDate(d)} <span class="hint">${minToHM(byDay[d].reduce((s,x)=>s+(x.durationMin||0),0))}</span></div>
     <div class="card">${byDay[d].sort((a,b)=>a.start.localeCompare(b.start)).map(sessionRowHTML).join('')}</div>
