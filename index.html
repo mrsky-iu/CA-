@@ -59,7 +59,6 @@ button,input,select,textarea{font-family:inherit;color:inherit;}
 .sidebar{
   width:220px;flex-shrink:0;background:var(--card);border-right:1px solid var(--line);
   padding:22px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;
-  overflow-y:auto;
 }
 .brand{display:flex;align-items:center;gap:10px;padding:6px 10px 22px;}
 .brand .logo{width:34px;height:34px;object-fit:contain;display:block;background:#fff;border-radius:9px;padding:4px;box-shadow:var(--shadow);}
@@ -78,7 +77,7 @@ button,input,select,textarea{font-family:inherit;color:inherit;}
 main{flex:1;min-width:0;padding:26px 32px 100px;max-width:1180px;}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:22px;}
 .greet h1{font-size:26px;margin:0 0 4px;}
-.greet p{margin:0;color:var(--sub);font-size:14px;white-space:normal;overflow:visible;text-overflow:clip;word-break:break-word;max-width:60ch;}
+.greet p{margin:0;color:var(--sub);font-size:14px;}
 .btn{
   border:none;border-radius:14px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer;
   background:var(--violet);color:#fff;transition:transform .1s, box-shadow .15s;box-shadow:var(--shadow);
@@ -275,39 +274,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 .eb-days-label{font-size:9.5px;text-transform:uppercase;opacity:.85;font-weight:700;}
 .pri-filterrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 .syl-stat-row{display:flex;gap:8px;margin-bottom:12px;}
-.home-stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px;}
-@media(min-width:700px){.home-stat-grid{grid-template-columns:repeat(4,1fr);}}
-.home-stat-grid .card{min-width:0;}
-.hw-pending-chip{width:min(230px,55%);display:flex;align-items:center;gap:9px;padding:10px 12px;margin-bottom:14px;cursor:pointer;}
-.home-chip-row{display:flex;gap:10px;margin-bottom:14px;}
-.home-chip-row .hw-pending-chip{width:auto;flex:1;min-width:0;margin-bottom:0;}
-.mini-badge{position:absolute;top:-7px;right:-7px;color:#fff;font-weight:800;font-size:10px;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 0 2px var(--bg);}
-.hw-pending-badge{color:#fff;font-weight:800;font-size:12px;min-width:24px;height:24px;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0 7px;flex-shrink:0;}
-.rev-cal-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;}
-.rev-cal-day{flex:0 0 auto;width:56px;min-height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 4px;scroll-snap-align:start;position:relative;}
-.rev-cal-dow{font-size:9.5px;font-weight:700;text-transform:uppercase;color:var(--sub);letter-spacing:.03em;}
-.rev-cal-num{font-size:16px;font-weight:800;font-family:'Fredoka',sans-serif;}
-.rev-cal-badge{font-size:11px;font-weight:800;background:var(--violet-soft);color:var(--violet-deep);border-radius:8px;padding:1px 6px;}
-.rev-cal-day.empty .rev-cal-badge{display:none;}
-.rev-cal-day.empty{opacity:.55;}
-.rev-cal-day.today{border-color:var(--violet);box-shadow:0 0 0 2px var(--violet-soft);}
-.rev-cal-day.today .rev-cal-badge{background:var(--violet);color:#fff;}
-.rev-cal-day.done .rev-cal-badge{background:#E5F7F1;color:#1D9C63;}
-.rev-cal-day.overdue{background:#FDEDED;border-color:#F3B7B7;}
-.rev-cal-day.overdue .rev-cal-dow{color:#D64545;}
-.rev-cal-day.overdue .rev-cal-num{color:#D64545;font-size:18px;}
-.box-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
-.box-col{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--violet);border-radius:14px;padding:12px 6px;text-align:center;}
-.box-col-hd{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
-.box-col-count{font-size:22px;font-weight:800;font-family:'Fredoka',sans-serif;}
-.box-col-sub{font-size:10px;color:var(--sub);margin-top:2px;}
-@media(max-width:480px){.box-grid{grid-template-columns:repeat(2,1fr);}}
-.sprint-banner{background:linear-gradient(135deg,#FF6B4A,#E8493C);color:#fff;border-radius:16px;padding:14px 16px;font-size:13.5px;margin-bottom:14px;box-shadow:var(--shadow);}
-.rev-strat-opt{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:12px;border:1.5px solid var(--line);cursor:pointer;}
-.rev-strat-opt.active{border-color:var(--violet);background:var(--violet-soft);}
-.fp-blur-wrap{position:relative;min-height:38px;display:flex;align-items:center;}
-.fp-blur-text{filter:blur(5px);opacity:.55;user-select:none;pointer-events:none;}
-.fp-reveal-btn{position:absolute;left:0;top:50%;transform:translateY(-50%);white-space:normal;text-align:left;}
 .syl-stat{flex:1;min-width:0;background:var(--card);border-radius:14px;padding:10px 8px;border:1px solid var(--line);text-align:center;}
 .syl-stat .lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--sub);font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .syl-stat .val{font-size:19px;font-weight:700;font-family:'Fredoka',sans-serif;line-height:1;}
@@ -664,16 +630,15 @@ function defaultState(){
   const chapters = {};
   SUBJECT_KEYS.forEach(k=>{
     chapters[k] = SUBJECTS[k].chapters.map((name,i)=>({
-      id:k+"_"+i, name, firstRead:false, firstReadDate:null, revisionStartDate:null, priority:autoPriority(k,i), notes:"",
+      id:k+"_"+i, name, firstRead:false, firstReadDate:null, priority:autoPriority(k,i), notes:"",
       stages:{lecture:false, revlecture:false, reading:false, questions:false},
       starCount:6, starsFilled:0, revStages:{} // {1:true,7:true,...}
     }));
   });
   return {
     profile:{name:"", examDate:"", theme:"light", group:"BOTH"},
-    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,7,14], revisionRule:{first:1, repeat:7}, revisionStrategy:'SPACED', revisionIntervalMultiplier:1, goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
+    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,7,16,35], goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
     chapters,
-    errorLog:[], // {id, subject, chapterId, chapterName, addedDate, cleanStreak, nextRetryDate} — failed revisions, retried every 24h until clean twice in a row
     wellness:{water:{}, sleep:{}, mood:{}}, // date-keyed logs — water: glasses count, sleep: hours, mood: 'great'|'ok'|'low'
     sessions:[], // {id,subject,chapter,activity,mode,start,end,durationMin,status}
     tests:[], // {id,paper,type,date,durationMin,marks,total,status}
@@ -713,7 +678,6 @@ function migrateState(parsed){
       if(!c.stages) c.stages = {lecture:false, revlecture:false, reading:false, questions:false, ...( c.firstRead? {lecture:true,reading:true,questions:true,revlecture:true} : {})};
       if(c.starCount===undefined) c.starCount = 6;
       if(c.starsFilled===undefined) c.starsFilled = c.firstRead? c.starCount : 0;
-      if(c.revisionStartDate===undefined) c.revisionStartDate = c.firstReadDate || null; // preserves existing revision schedules
     });
   });
   if(!merged.homework) merged.homework = [];
@@ -742,12 +706,13 @@ function migrateState(parsed){
   if(!merged.wellness.water) merged.wellness.water = {};
   if(!merged.wellness.sleep) merged.wellness.sleep = {};
   if(!merged.wellness.mood) merged.wellness.mood = {};
+  // upgrade the old 1-3-7-14 day default to the classic 1-3-7-16-35 spaced-repetition
+  // schedule — only if the user never customized their offsets themselves
+  if(JSON.stringify(merged.settings.revisionOffsets)===JSON.stringify([1,3,7,14])){
+    merged.settings.revisionOffsets = [1,3,7,16,35];
+  }
   if(merged.settings.waterGoal===undefined) merged.settings.waterGoal = 8;
   if(merged.settings.breakReminderMin===undefined) merged.settings.breakReminderMin = 50;
-  if(!merged.settings.revisionRule) merged.settings.revisionRule = {first:1, repeat:7}; // 1st revision +1 day, then every 7 days thereafter — old data keeps its completed revStages as-is
-  if(!merged.settings.revisionStrategy) merged.settings.revisionStrategy = 'SPACED';
-  if(merged.settings.revisionIntervalMultiplier===undefined) merged.settings.revisionIntervalMultiplier = 1;
-  if(!merged.errorLog) merged.errorLog = [];
   if(!merged.security) merged.security = {pinHash:null, enabled:false};
   return merged;
 }
@@ -849,109 +814,23 @@ function subjectPriorityReadiness(k){
   const doneW = chs.filter(c=>c.firstRead).reduce((s,c)=>s+PRI_WEIGHT[c.priority||'B'],0);
   return totalW? doneW/totalW : 0; // 0..1
 }
-function inProgressSessions(){ return state.sessions.filter(s=>s.status==='inprogress'); }
 function daysToExam(){ if(!state.profile.examDate) return null; return Math.max(0,daysBetween(todayISO(), state.profile.examDate)); }
 
 /* revision due calc */
-/* Three selectable strategies, all built on the same cumulative-offset-from-revisionStartDate
-   engine (no per-chapter timestamp math needed elsewhere in the app):
-   - SPACED (default): classic 1-3-7-30 day rule, then repeats every 30 days.
-   - BOX (Leitner): 2-4-7-90 day boxes, then repeats every 90 days.
-   - SPRINT: compressed 1-2-4-6 day loop for the final stretch before the exam, then repeats every 2 days.
-   A per-user interval_multiplier can speed up or slow down any of the three. */
-const REVISION_STRATEGIES = {
-  SPACED: {label:'Spaced Repetition', short:'1‑3‑7‑30 day rule', desc:'The platform default — proven, steady long-term retention.', table:[1,3,7,30], tail:30, failOffsetDays:1, theme:null},
-  BOX:    {label:'Box System (Leitner)', short:'2‑4‑7‑90 day boxes', desc:'Great for definitions, sections & formulas — Law, Audit. Any miss drops the card straight back to Box 1.', table:[2,4,7,90], tail:90, failOffsetDays:2, theme:null},
-  SPRINT: {label:'Exam Sprint', short:'1‑2‑4‑6 day loop', desc:'High-density loop for the final stretch — switch to this once you are under ~60 days from the exam.', table:[1,2,4,6], tail:2, failOffsetDays:0, theme:'sprint'}
-};
-function currentRevisionStrategy(){
-  return REVISION_STRATEGIES[state.settings.revisionStrategy] || REVISION_STRATEGIES.SPACED;
-}
-function revisionOffsetForStage(stage){
-  const strat = currentRevisionStrategy();
-  const mult = Number(state.settings.revisionIntervalMultiplier)||1;
-  const table = strat.table;
-  let raw;
-  if(stage<=table.length) raw = table[stage-1];
-  else raw = table[table.length-1] + strat.tail*(stage-table.length);
-  return Math.max(1, Math.round(raw*mult));
-}
-function revisionScheduleLabel(){
-  const strat = currentRevisionStrategy();
-  return `${strat.label} (${strat.short})`;
-}
-/* "Got it wrong" — hard-resets the chapter's cumulative schedule anchor to today (or, for Sprint,
-   to "yesterday" so stage 1's normal 1-day offset lands on TODAY, approximating same-day/same-night
-   retest at our date-level granularity), clears completed stages, and logs it to the Error Log. */
-function reviseGotWrong(subj, chId){
-  const c = state.chapters[subj].find(x=>x.id===chId);
-  if(!c) return;
-  const strat = currentRevisionStrategy();
-  c.revisionStartDate = strat.failOffsetDays===0? addDays(todayISO(),-1) : todayISO();
-  c.revStages = {};
-  addToErrorLog(subj, chId);
-  save(); toast('No worries — rescheduled for extra practice, and added to your Error Log 🔁'); render();
-}
-function addToErrorLog(subj, chId){
-  const c = state.chapters[subj].find(x=>x.id===chId);
-  if(!c) return;
-  let e = state.errorLog.find(x=>x.subject===subj && x.chapterId===chId);
-  if(!e){ e = {id:uid(), subject:subj, chapterId:chId, chapterName:c.name, addedDate:todayISO(), cleanStreak:0, nextRetryDate:todayISO()}; state.errorLog.push(e); }
-  else { e.cleanStreak = 0; e.nextRetryDate = addDays(todayISO(),1); }
-}
-function errorLogDue(){
-  const today = todayISO();
-  return state.errorLog.filter(e=>e.nextRetryDate<=today).sort((a,b)=>a.nextRetryDate.localeCompare(b.nextRetryDate));
-}
-function errorLogMarkClean(id){
-  const e = state.errorLog.find(x=>x.id===id);
-  if(!e) return;
-  e.cleanStreak = (e.cleanStreak||0)+1;
-  if(e.cleanStreak>=2){ state.errorLog = state.errorLog.filter(x=>x.id!==id); toast('Cleared from Error Log — nicely done 🎉'); }
-  else { e.nextRetryDate = addDays(todayISO(),1); toast('Nice — one more clean pass tomorrow and it graduates'); }
-  save(); render();
-}
-function errorLogMarkShaky(id){
-  const e = state.errorLog.find(x=>x.id===id);
-  if(!e) return;
-  e.cleanStreak = 0;
-  e.nextRetryDate = addDays(todayISO(),1);
-  save(); toast('Back on the 24h retry list'); render();
-}
 function revisionsDue(){
   const due=[]; const today=todayISO();
   SUBJECT_KEYS.forEach(k=>{
     state.chapters[k].forEach(c=>{
-      if(!c.revisionStartDate) return; // clock hasn't started — no session logged for this chapter yet
-      if(!c.revStages) c.revStages = {};
-      for(let stage=1; stage<=200; stage++){ // 200 stages ≈ years ahead — plenty, and offsets only grow, so safe to break early
-        if(c.revStages[stage]) continue; // already done — check the next stage too, in case it's also due
-        const dueDate = addDays(c.revisionStartDate, revisionOffsetForStage(stage));
+      if(!c.firstRead || !c.firstReadDate) return;
+      state.settings.revisionOffsets.forEach((off,idx)=>{
+        const stage = idx+1;
+        if(c.revStages[stage]) return;
+        const dueDate = addDays(c.firstReadDate, off);
         if(dueDate<=today){ due.push({subject:k, chapter:c, stage, dueDate}); }
-        else break; // offsets are monotonically increasing, so nothing further can be due yet
-      }
+      });
     });
   });
   return due.sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
-}
-/* Everything scheduled (any status) within [startISO, startISO+days) — powers the revision calendar. */
-function revisionScheduleInRange(startISO, days){
-  const endISO = addDays(startISO, days);
-  const byDate = {};
-  for(let i=0;i<days;i++){ byDate[addDays(startISO,i)] = []; }
-  SUBJECT_KEYS.forEach(k=>{
-    state.chapters[k].forEach(c=>{
-      if(!c.revisionStartDate) return;
-      for(let stage=1; stage<=200; stage++){
-        const dueDate = addDays(c.revisionStartDate, revisionOffsetForStage(stage));
-        if(dueDate>=endISO) break; // monotonically increasing — nothing later in range either
-        if(dueDate>=startISO && byDate[dueDate]){
-          byDate[dueDate].push({subject:k, chapter:c, stage, done: !!(c.revStages&&c.revStages[stage])});
-        }
-      }
-    });
-  });
-  return byDate;
 }
 function reviewYesterday(){
   const y = addDays(todayISO(),-1);
@@ -975,7 +854,7 @@ const ROUTES = [
   {id:'settings', label:'Settings', icon:'⚙️', group:'reference'}
 ];
 const NAV_GROUP_LABELS = {track:'Track', plan:'Plan', reference:'Reference'};
-const MOBILE_MAIN = ['today','session','syllabus','dashboard'];
+const MOBILE_MAIN = ['today','session','hwlog','revisions'];
 let route = 'today';
 let sessionDraft = null; // used by session tab
 let timerHandle = null;
@@ -1009,15 +888,23 @@ function renderNav(){
   });
 }
 function openMoreSheet(){
+  const leftoverMain = ROUTES.filter(r=>r.group==='main' && !MOBILE_MAIN.includes(r.id));
   const groups = ['track','plan','reference'];
   openModal(`
     <h2>More</h2>
-    ${groups.map(g=>`
+    ${leftoverMain.length? `
+    <div class="more-sheet-grid">
+      ${leftoverMain.map(r=>`<button class="navlink" data-r="${r.id}"><span class="ic">${r.icon}</span>${r.label}</button>`).join('')}
+    </div>` : ''}
+    ${groups.map(g=>{
+      const items = ROUTES.filter(r=>r.group===g && !MOBILE_MAIN.includes(r.id));
+      if(!items.length) return '';
+      return `
       <div class="more-sheet-label">${NAV_GROUP_LABELS[g]}</div>
       <div class="more-sheet-grid">
-        ${ROUTES.filter(r=>r.group===g).map(r=>`<button class="navlink" data-r="${r.id}"><span class="ic">${r.icon}</span>${r.label}</button>`).join('')}
-      </div>
-    `).join('')}
+        ${items.map(r=>`<button class="navlink" data-r="${r.id}"><span class="ic">${r.icon}</span>${r.label}</button>`).join('')}
+      </div>`;
+    }).join('')}
   `);
   document.querySelectorAll('#modalRoot .navlink').forEach(b=>b.onclick=()=>{ closeModal(); go(b.dataset.r); });
 }
@@ -1070,7 +957,7 @@ function renderTopHeader(){
       <div class="th-quickstats">
         ${!storageOK? `<span class="th-warn" title="Changes aren't saving to this device">⚠</span>`:''}
         <span class="th-qs" title="Current streak">🔥${currentStreak()}</span>
-        ${dte!==null? `<span class="th-qs" title="Days to exam">🎯${dte}d</span>` : `<button class="th-qs th-setdate" onclick="go('settings')">Set exam date</button>`}
+        ${dte!==null? `<span class="th-qs" title="Days to exam">🎯${dte}d</span>` : `<button class="th-qs th-setdate" onclick="go('settings')">set exam date</button>`}
         <button class="th-gear" onclick="toggleQuickTheme()" title="Toggle dark/light">${state.profile.theme==='dark'?'☀':'🌙'}</button>
         <button class="th-gear" onclick="go('settings')" title="Settings">⚙</button>
       </div>
@@ -1093,24 +980,25 @@ function pageToday(name){
   const todaymap = sessionsByDate();
   const todayMin = todaymap[todayISO()]||0;
   const todaySessions = state.sessions.filter(s=>s.start.slice(0,10)===todayISO());
+  const incompleteHW = state.homework.filter(e=>hwStatus(e)!=='done').sort((a,b)=>b.date.localeCompare(a.date));
   const keys = activeSubjectKeys();
   const ss = syllabusStats(keys);
   const overallPct = ss.total? Math.round(100*ss.done/ss.total) : 0;
   return `
   <div class="topbar">
     <div class="greet">
-      <h1>${state.profile.name? `${greeting()}, ${name}.` : `${greeting()} 👋`}</h1>
+      <h1>${greeting()}, ${name}.</h1>
       <p>${new Date().toLocaleDateString('en-GB',{weekday:'long', day:'2-digit', month:'short', year:'numeric'})}${state.profile.group!=='BOTH'? ` · ${GROUP_LABELS[state.profile.group]}`:''}</p>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;">
+    <div style="display:flex;gap:8px;">
       <button class="btn ghost" onclick="openQuickComplete()">⚡ Log past session</button>
-      <button class="btn" onclick="go('session')" style="position:relative;">+ Start session
-        <span class="mini-badge" style="background:${pendingHWQuestions()>0?'#D64545':'#1D9C63'};" title="Pending homework questions">${pendingHWQuestions()}</span>
-      </button>
+      <button class="btn" onclick="go('session')">+ Start session</button>
     </div>
   </div>
 
   <div class="quote-card">💭 ${todaysQuote()}</div>
+
+  ${todoCardHTML()}
 
   <div class="card tint-violet" style="margin-bottom:14px;display:flex;align-items:center;gap:16px;">
     <div style="flex-shrink:0;">
@@ -1121,7 +1009,7 @@ function pageToday(name){
     <div style="flex:1;"><div class="progress-track" style="height:10px;"><div class="progress-fill" style="width:${overallPct}%;"></div></div></div>
   </div>
 
-  <div class="home-stat-grid">
+  <div class="grid cols-4">
     <div class="card tint-amber">
       <div class="stat-label">Days to exam</div>
       <div class="stat-num">${dte===null?'—':dte}</div>
@@ -1144,17 +1032,17 @@ function pageToday(name){
     </div>
   </div>
 
-  <div class="home-chip-row">
-    <div class="card hw-pending-chip" onclick="showPendingHWPopup()">
-      <div style="font-size:19px;flex-shrink:0;">📝</div>
-      <div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--txt);">Homework</div>
-      <div class="hw-pending-badge" style="background:${pendingHWQuestions()>0?'#D64545':'#1D9C63'};">${pendingHWQuestions()}</div>
-    </div>
-    <div class="card hw-pending-chip" onclick="go('revisions')">
-      <div style="font-size:19px;flex-shrink:0;">🔁</div>
-      <div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--txt);">Revision</div>
-      <div class="hw-pending-badge" style="background:${revisionsDue().length>0?'#D64545':'#1D9C63'};">${revisionsDue().length}</div>
-    </div>
+  <div class="section-title">Incomplete homework <span class="hint">${incompleteHW.length} pending</span></div>
+  <div class="card">
+    ${incompleteHW.length? incompleteHW.map(e=>`
+      <div class="list-row">
+        <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject]?SUBJECTS[e.subject].color:'#999'}"></span>
+        <div style="flex:1;min-width:0;">
+          <b>${e.topic}</b><br>
+          <span style="color:var(--sub);font-size:12.5px;">${e.subject}${e.questionRange? ` · ${e.questionRange}`:''}${(Number(e.totalQuestions)||0)>0? ` · ${Number(e.completedQuestions)||0}/${e.totalQuestions} Qs`:''}</span>
+        </div>
+        <button class="btn sm" onclick="go('hwlog')">Open</button>
+      </div>`).join('') : `<div class="empty" style="padding:20px 0;">No incomplete homework 🎉</div>`}
   </div>
 
   ${wellnessCardHTML()}
@@ -1164,9 +1052,9 @@ function pageToday(name){
     ${keys.map(k=>subjectRowHTML(k)).join('')}
   </div>
 
-  <div class="section-title">Today's sessions <span class="hint">${minToHM(todayMin)} total</span></div>
+  <div class="section-title">Today's sessions <span class="hint">${minToHM(todayMin)} total</span> <a style="float:right;cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13px;" onclick="go('timeline')">View history →</a></div>
   <div class="card">
-    ${todaySessions.length? todaySessions.map(sessionRowHTML).join('') : `
+    ${todaySessions.length? todaySessions.map(s=>sessionRowHTML(s,{showDate:false})).join('') : `
     <div class="empty"><div class="big">🌱</div><h3>Nothing logged yet today</h3><p>Start a session, or add one from Session → Quick-complete.</p></div>`}
   </div>
   `;
@@ -1241,11 +1129,12 @@ function subjectRowHTML(k){
     <div class="spct">${pct}%</div>
   </div>`;
 }
-function sessionRowHTML(s){
+function sessionRowHTML(s, opts){
   const a = ACTIVITIES.find(x=>x.id===s.activity);
+  const showDate = !(opts && opts.showDate===false);
   return `<div class="list-row">
     <div style="width:34px;height:34px;border-radius:10px;background:var(--violet-soft);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${a?a.icon:'📘'}</div>
-    <div style="flex:1;min-width:0;"><b>${SUBJECTS[s.subject].name}</b>${s.chapter? ' · '+s.chapter:''}${s.topic? `<br><span style="color:var(--violet-deep);font-size:12px;font-weight:600;">📝 ${s.topic}</span>`:''}<br><span style="color:var(--sub);font-size:12.5px">${a?a.label:''} · ${s.status==='complete'?'Completed':'In progress'}</span></div>
+    <div style="flex:1;min-width:0;"><b>${SUBJECTS[s.subject].name}</b>${s.chapter? ' · '+s.chapter:''}${s.topic? `<br><span style="color:var(--violet-deep);font-size:12px;font-weight:600;">📝 ${s.topic}</span>`:''}<br><span style="color:var(--sub);font-size:12.5px">${a?a.label:''} · ${s.status==='complete'?'Completed':'In progress'}</span>${showDate? `<br><span style="color:var(--coral);font-size:11px;font-weight:700;">${fmtDate(s.start? s.start.slice(0,10):'')}</span>`:''}</div>
     <div style="font-weight:700;font-size:13.5px;flex-shrink:0;">${s.durationMin?minToHM(s.durationMin):'—'}</div>
     <button class="sess-edit-btn" onclick="editSession('${s.id}')" title="Edit topic or duration">✏️</button>
   </div>`;
@@ -1287,7 +1176,10 @@ function pageSession(){
   return `
   <div class="topbar"><div class="greet"><h1>Start a session</h1><p>Pick an activity — date & time fill in automatically.</p></div></div>
   <div class="quote-card">💭 ${todaysQuote()}</div>
-  <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="openQuickComplete()">⚡ Quick-complete a past session</a>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="openQuickComplete()">⚡ Quick-complete a past session</a>
+    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="go('timeline')">📆 View session history</a>
+  </div>
   <div class="activity-grid">
     ${ACTIVITIES.map(a=>`
       <div class="activity-card" style="--act-color:${a.color};--act-soft:${a.soft};" onclick="pickActivity('${a.id}')">
@@ -1333,23 +1225,6 @@ function sessionConfigHTML(){
     <button class="btn outline" onclick="sessionDraft=null;render();">Cancel</button>
     <button class="btn" onclick="startSession()">Start session →</button>
   </div>`;
-}
-function startRevisionTimer(subj, chId, stage){
-  const chapter = state.chapters[subj].find(c=>c.id===chId);
-  if(!chapter) return;
-  sessionDraft = {activity:'revlecture', subject:subj, chapter:chapter.name, mode:'live', topic:'', revisionLink:{subject:subj, chapterId:chId, stage}};
-  sessionDraft.id = uid();
-  sessionDraft.start = new Date().toISOString();
-  sessionDraft.startedAt = sessionDraft.start;
-  sessionDraft.pausedAt = null;
-  sessionDraft.totalPausedMs = 0;
-  sessionDraft.status = 'running';
-  sessionDraft.phase = 'work';
-  sessionDraft.phaseStartedAt = sessionDraft.start;
-  sessionDraft.breakRemindersGiven = 0;
-  persistActiveSession();
-  startTickInterval();
-  go('session');
 }
 function startSession(){
   const subject = document.getElementById('cfgSubject').value;
@@ -1455,7 +1330,6 @@ function sessionTimerHTML(){
     <div style="display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap;">
       <button class="btn ghost" onclick="pauseResumeSession()">${d.paused?'▶ Resume':'⏸ Pause'}</button>
       <button class="btn" style="background:var(--mint)" onclick="endSession('complete')">Complete</button>
-      <button class="btn ghost" onclick="endSession('inprogress')">End · in progress</button>
     </div>
     <div class="timer-footer-row">
       <button class="btn ghost sm" onclick="toggleTimerFullscreen()">⛶ Fullscreen</button>
@@ -1482,26 +1356,21 @@ function pauseResumeSession(){
   render();
 }
 function endSession(status){
+  status = 'complete'; // in-progress session status removed — every ended session is complete
   clearInterval(timerHandle); timerHandle=null;
   stopBrownNoise();
   const d = sessionDraft;
   const elapsed = computeElapsedSec(d);
   const durationMin = Math.round(elapsed/60) || 1;
   state.sessions.push({id:d.id, subject:d.subject, chapter:d.chapter, activity:d.activity, mode:d.mode, topic:d.topic||'', start:d.start, end:new Date().toISOString(), durationMin, status});
-  if(status==='complete'){
-    markStageFromActivity(d.subject, d.chapter, d.activity, d.start.slice(0,10));
-    if(d.revisionLink){
-      const c = state.chapters[d.revisionLink.subject].find(x=>x.id===d.revisionLink.chapterId);
-      if(c){ if(!c.revStages) c.revStages={}; c.revStages[d.revisionLink.stage] = todayISO(); }
-    }
-  }
+  markStageFromActivity(d.subject, d.chapter, d.activity);
   sessionDraft = null;
   state.activeSession = null;
   save();
-  toast(status==='complete'? (d.revisionLink? 'Revision timer complete — marked done ✔️' : 'Session completed 🎉') : 'Saved as in progress');
+  toast('Session completed 🎉');
   render();
 }
-function markStageFromActivity(subject, chapterName, activityId, sessionDate){
+function markStageFromActivity(subject, chapterName, activityId){
   const ch = state.chapters[subject].find(c=>c.name===chapterName);
   if(!ch) return;
   if(!ch.stages) ch.stages = {lecture:false, revlecture:false, reading:false, questions:false};
@@ -1509,10 +1378,6 @@ function markStageFromActivity(subject, chapterName, activityId, sessionDate){
     ch.stages[activityId] = true;
     syncFirstRead(ch);
   }
-  // Revision clock starts the moment you log ANY session for this chapter — lecture, reading,
-  // whichever comes first — not only once every stage checkbox is ticked. Backdates correctly
-  // when logged via Quick-complete for a past date.
-  if(!ch.revisionStartDate) ch.revisionStartDate = sessionDate || todayISO();
 }
 function cancelSession(){
   if(!confirm('Discard this session? The time won\'t be logged.')) return;
@@ -1634,7 +1499,7 @@ function submitQuickComplete(){
   const min = parseInt(document.getElementById('qcMin').value)||30;
   state.sessions.push({id:uid(), subject, chapter, activity, topic, mode:'quick', start:date+"T12:00:00", end:date+"T12:"+String(min%60).padStart(2,'0')+":00", durationMin:min, status:'complete'});
   if(true){
-    markStageFromActivity(subject, chapter, activity, date);
+    markStageFromActivity(subject, chapter, activity);
   }
   save(); closeModal(); toast('Logged!'); render();
 }
@@ -1816,7 +1681,6 @@ function syncFirstRead(c){
   const wasFirstRead = c.firstRead;
   c.firstRead = chapterStagePct(c)===100;
   if(c.firstRead && !c.firstReadDate) c.firstReadDate = todayISO();
-  if(c.firstRead && !c.revisionStartDate) c.revisionStartDate = c.firstReadDate; // fallback for chapters ticked complete manually, never logged as a session
   return c.firstRead && !wasFirstRead; // true only on the exact transition to complete
 }
 function toggleStage(subjKey, id, stageId){
@@ -1825,7 +1689,7 @@ function toggleStage(subjKey, id, stageId){
   c.stages[stageId] = !c.stages[stageId];
   const justCompleted = syncFirstRead(c);
   save();
-  if(justCompleted) toast(`✓ ${c.name} complete — revisions scheduled: ${revisionScheduleLabel()}`);
+  if(justCompleted) toast(`✓ ${c.name} complete — revisions scheduled for day ${state.settings.revisionOffsets.join('/')}`);
   render();
 }
 function toggleAllStages(subjKey, id){
@@ -1834,7 +1698,7 @@ function toggleAllStages(subjKey, id){
   STAGE_ORDER.forEach(s=> c.stages[s] = !full);
   const justCompleted = syncFirstRead(c);
   save();
-  toast(full? 'Chapter unmarked' : (justCompleted? `✓ Complete! Revisions scheduled: ${revisionScheduleLabel()}` : 'Chapter marked complete 🎉'));
+  toast(full? 'Chapter unmarked' : (justCompleted? `✓ Complete! Revisions scheduled for day ${state.settings.revisionOffsets.join('/')}` : 'Chapter marked complete 🎉'));
   render();
 }
 
@@ -1863,7 +1727,7 @@ function toggleLectureStar(subjKey, id, n){
       c.starsFilled = starCount;
       const justCompleted = syncFirstRead(c);
       save();
-      toast(`🌟 Super Star! ${c.name} is 100% complete — revisions scheduled: ${revisionScheduleLabel()}`);
+      toast(`🌟 Super Star! ${c.name} is 100% complete — revisions scheduled for day ${state.settings.revisionOffsets.join('/')}`);
       render();
     } else {
       // toggle back off — un-complete the chapter
@@ -1916,37 +1780,6 @@ function hwStatus(e){
   if(total>0 && comp>=total) return 'done';
   if(comp>0) return 'in-progress';
   return 'pending';
-}
-function pendingHWQuestions(){
-  // Total unfinished questions across every homework entry, any subject — recomputed fresh
-  // on every render() call, so it reflects add/edit/delete/complete immediately.
-  return state.homework.reduce((sum,e)=>{
-    const total = Number(e.totalQuestions)||0, comp = Number(e.completedQuestions)||0;
-    return sum + Math.max(0, total-comp);
-  }, 0);
-}
-function showPendingHWPopup(){
-  const pending = state.homework.filter(e=>hwStatus(e)!=='done');
-  openModal(`
-    <button class="close-x" onclick="closeModal()">✕</button>
-    <h2>📝 Pending homework</h2>
-    <p style="color:var(--sub);margin-top:-6px;">${pendingHWQuestions()} question${pendingHWQuestions()===1?'':'s'} left across ${pending.length} entr${pending.length===1?'y':'ies'}</p>
-    ${pending.length? `<div style="max-height:50vh;overflow:auto;margin:10px 0;">
-      ${pending.map(e=>{
-        const total = Number(e.totalQuestions)||0, comp = Number(e.completedQuestions)||0;
-        const left = Math.max(0,total-comp);
-        return `<div class="list-row">
-          <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
-          <div style="flex:1;min-width:0;">
-            <b>${SUBJECTS[e.subject].name}</b>${e.chapter? ' · '+e.chapter:''}
-            <br><span style="color:var(--sub);font-size:12.5px;">${comp}/${total} done · ${left} left</span>
-          </div>
-          <button class="btn ghost sm" onclick="hwMarkDone('${e.id}');showPendingHWPopup();">Mark done</button>
-        </div>`;
-      }).join('')}
-    </div>` : `<div class="empty" style="padding:20px 0;">Nothing pending — you're all caught up 🎉</div>`}
-    <button class="btn" style="width:100%;margin-top:6px;" onclick="closeModal();go('hwlog');">Open full Homework Log →</button>
-  `);
 }
 function hwSetSubj(s){ hwSubjFilter=s; render(); }
 function hwToggleForm(){ hwShowForm=!hwShowForm; render(); }
@@ -2195,94 +2028,11 @@ function toggleGoal(i){
 }
 
 /* ---------- REVISIONS ---------- */
-function revisionCalendarHTML(){
-  const today = todayISO();
-  const overdueCount = revisionsDue().filter(r=>r.dueDate<today).length;
-  const schedule = revisionScheduleInRange(today, 14);
-  const days = Object.keys(schedule).sort();
-  return `
-  <div class="section-title">🗓️ Revision calendar <span class="hint">next 14 days</span></div>
-  <div class="rev-cal-strip">
-    ${overdueCount? `<div class="rev-cal-day overdue"><div class="rev-cal-dow">Overdue</div><div class="rev-cal-num">${overdueCount}</div></div>`:''}
-    ${days.map(d=>{
-      const items = schedule[d];
-      const total = items.length;
-      const doneCt = items.filter(i=>i.done).length;
-      const isToday = d===today;
-      let cls = 'rev-cal-day';
-      if(total===0) cls += ' empty';
-      else if(doneCt===total) cls += ' done';
-      else if(isToday) cls += ' today';
-      const dt = new Date(d+'T00:00:00');
-      return `<div class="${cls}" title="${total} revision${total===1?'':'s'} scheduled">
-        <div class="rev-cal-dow">${dt.toLocaleDateString('en-GB',{weekday:'short'})}</div>
-        <div class="rev-cal-num">${dt.getDate()}</div>
-        ${total? `<div class="rev-cal-badge">${doneCt===total? '✓' : total}</div>` : ''}
-      </div>`;
-    }).join('')}
-  </div>`;
-}
-function revisionModeVisualHTML(){
-  const strat = state.settings.revisionStrategy;
-  if(strat==='BOX') return boxSystemGridHTML();
-  if(strat==='SPRINT') return sprintBannerHTML() + revisionCalendarHTML();
-  return revisionCalendarHTML();
-}
-function boxSystemGridHTML(){
-  const boxes = [[],[],[],[]];
-  SUBJECT_KEYS.forEach(k=>{
-    state.chapters[k].forEach(c=>{
-      if(!c.revisionStartDate) return;
-      const completed = Object.keys(c.revStages||{}).length;
-      boxes[Math.min(completed,3)].push({subject:k, name:c.name});
-    });
-  });
-  const meta = [
-    {label:'Box 1', sub:'every 2 days', color:'#D64545'},
-    {label:'Box 2', sub:'every 4 days', color:'#E08A3C'},
-    {label:'Box 3', sub:'every 7 days', color:'#3C8FE0'},
-    {label:'Box 4', sub:'archived till exam week', color:'#28A87D'}
-  ];
-  return `
-  <div class="section-title">📦 Box System <span class="hint">climb up on success — any miss drops straight back to Box 1</span></div>
-  <div class="box-grid">
-    ${boxes.map((items,i)=>`
-      <div class="box-col" style="border-top-color:${meta[i].color};">
-        <div class="box-col-hd" style="color:${meta[i].color};">${meta[i].label}</div>
-        <div class="box-col-count">${items.length}</div>
-        <div class="box-col-sub">${meta[i].sub}</div>
-      </div>`).join('')}
-  </div>`;
-}
-function sprintBannerHTML(){
-  const d = daysToExam();
-  return `
-  <div class="section-title">🔥 Exam Sprint mode active</div>
-  <div class="sprint-banner">${d===null? 'Set your exam date on Home to see your countdown.' : `<b>${d} day${d===1?'':'s'}</b> to your exam — high-density loop, every revision counts now.`}</div>`;
-}
-function errorLogHTML(){
-  const due = errorLogDue();
-  if(!state.errorLog.length) return '';
-  return `
-  <div class="section-title">⚠️ Error Log <span class="hint">missed revisions — retested every 24h until clean twice in a row</span></div>
-  <div class="card">
-    ${due.length? due.map(e=>`
-      <div class="list-row">
-        <div style="width:8px;height:8px;border-radius:50%;background:${SUBJECTS[e.subject].color};"></div>
-        <div style="flex:1;"><b>${e.chapterName}</b><br><span style="color:var(--sub);font-size:12.5px;">${SUBJECTS[e.subject].name} · clean streak ${e.cleanStreak}/2</span></div>
-        <button class="btn ghost sm" style="color:#D64545;" onclick="errorLogMarkShaky('${e.id}')">Still shaky</button>
-        <button class="btn sm" onclick="errorLogMarkClean('${e.id}')">✓ Clean</button>
-      </div>`).join('') : `<div class="empty" style="padding:16px 0;">${state.errorLog.length} item${state.errorLog.length===1?'':'s'} on the list, next retry not due yet.</div>`}
-  </div>`;
-}
 function pageRevisions(){
   const due = revisionsDue();
   const yest = reviewYesterday();
   return `
-  <div class="topbar"><div class="greet"><h1>Revision Queue</h1><p>Quick "review yesterday" and your spaced chapter revisions.</p></div></div>
-
-  ${revisionModeVisualHTML()}
-
+  <div class="topbar"><div class="greet"><h1>Revisions</h1><p>Quick "review yesterday" and your spaced chapter revisions.</p></div></div>
   <div class="section-title">Review yesterday <span class="hint">fades after 2 days</span></div>
   <div class="card">
     ${yest.length? yest.map(sessionRowHTML).join('') : `<div class="empty" style="padding:24px 0;">Nothing to review — anything you study gets a nudge here the next day.</div>`}
@@ -2293,20 +2043,16 @@ function pageRevisions(){
       <div class="list-row">
         <div style="width:8px;height:8px;border-radius:50%;background:${SUBJECTS[r.subject].color};"></div>
         <div style="flex:1;"><b>${r.chapter.name}</b><br><span style="color:var(--sub);font-size:12.5px;">${SUBJECTS[r.subject].name} · Revision ${r.stage} · due ${fmtDate(r.dueDate)}</span></div>
-        <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})">▶ Start timer</button>
-        <button class="btn ghost sm" style="color:#D64545;" onclick="reviseGotWrong('${r.subject}','${r.chapter.id}')">✗ Got it wrong</button>
-        <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage})">✓ Mark done</button>
-      </div>`).join('') : `<div class="empty" style="padding:24px 0;">No revisions due. Finish first-reading a chapter (Syllabus) to start its revision schedule (${revisionScheduleLabel()}).</div>`}
-  </div>
-
-  ${errorLogHTML()}`;
+        <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage})">Mark done</button>
+      </div>`).join('') : `<div class="empty" style="padding:24px 0;">No revisions due. Finish first-reading a chapter (Syllabus) to start its ${state.settings.revisionOffsets.join('/')} schedule.</div>`}
+  </div>`;
 }
 function completeRevision(subj, chId, stage){
   const c = state.chapters[subj].find(x=>x.id===chId);
   c.revStages[stage] = todayISO();
   save(); toast('Revision logged'); render();
 }
-/* ---------- SPACED-REPETITION AUTO REMINDER (1-3-7-14 day method) ---------- */
+/* ---------- SPACED-REPETITION AUTO REMINDER (1-3-7-16-35 day method) ---------- */
 /* ---------- HOMEWORK DUE-DATE REMINDER ---------- */
 function hwDueOrOverdue(){
   const today = todayISO();
@@ -2325,9 +2071,10 @@ function todoCardHTML(){
   const dueHW = hwDueOrOverdue();
   const upcomingHW = hwUpcoming().slice(0,3);
   const totalDue = dueRev.length + dueHW.length;
+  if(totalDue===0 && upcomingHW.length===0) return '';
   return `
   <div class="todo-card">
-    <div class="todo-hd">📝 Homework Due Today <span class="hint">${totalDue} pending</span></div>
+    <div class="todo-hd">📝 To-Do <span class="hint">${totalDue} due now</span></div>
     ${dueHW.map(e=>`
       <div class="todo-row">
         <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
@@ -2338,9 +2085,7 @@ function todoCardHTML(){
       <div class="todo-row">
         <span class="hw-subj-dot" style="background:${SUBJECTS[r.subject].color}"></span>
         <div style="flex:1;min-width:0;"><b>${r.chapter.name}</b><div style="font-size:11px;color:var(--sub);">Revision ${r.stage} due ${fmtDate(r.dueDate)}</div></div>
-        <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})" title="Start revision timer">▶</button>
-        <button class="btn ghost sm" style="color:#D64545;" onclick="reviseGotWrong('${r.subject}','${r.chapter.id}')" title="Got it wrong">✗</button>
-        <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});render();" title="Mark done">✓</button>
+        <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});render();">✓</button>
       </div>`).join('')}
     ${upcomingHW.length? `
       <div class="todo-upcoming-hd">Coming up</div>
@@ -2351,10 +2096,7 @@ function todoCardHTML(){
           <button class="btn sm ghost" onclick="addHWToPhone('${e.id}')">📅 Add to phone</button>
         </div>`).join('')}
     ` : ''}
-    ${totalDue===0? `<div style="font-size:12.5px;color:var(--sub);padding:6px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <span>${state.homework.length===0? 'No homework logged yet.' : 'Nothing due right now — nice.'}</span>
-      ${state.homework.length===0? `<button class="btn ghost sm" onclick="go('hwlog')">+ Add homework</button>` : ''}
-    </div>` : ''}
+    ${totalDue===0? `<div style="font-size:12.5px;color:var(--sub);padding:6px 0;">Nothing due right now — nice.</div>` : ''}
   </div>`;
 }
 /* "Add to phone" — generates a standard .ics calendar file for the homework's due date.
@@ -2409,7 +2151,7 @@ function checkDailyReminders(force){
         <div style="font-size:11px;font-weight:800;color:${SUBJECTS[subj].color};text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px;">${SUBJECTS[subj].name}</div>
         ${groupedRev[subj].map(r=>`
           <div class="list-row" style="padding:8px 0;">
-            <div style="flex:1;"><b style="font-size:13px;">${r.chapter.name}</b><br><span style="color:var(--sub);font-size:11.5px;">Revision ${r.stage} (day ${revisionOffsetForStage(r.stage)}) · due ${fmtDate(r.dueDate)}</span></div>
+            <div style="flex:1;"><b style="font-size:13px;">${r.chapter.name}</b><br><span style="color:var(--sub);font-size:11.5px;">Revision ${r.stage} (day ${state.settings.revisionOffsets[r.stage-1]}) · due ${fmtDate(r.dueDate)}</span></div>
             <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});checkDailyReminders(true);">✓ Done</button>
           </div>`).join('')}
       `).join('')}
@@ -2532,10 +2274,6 @@ function saveFinalRevSettings(){
 
 /* ---------- FLASHPOINTS ---------- */
 let fpFilter = 'All'; let fpSearch='';
-let fpRecallMode = false;
-let revealedFP = new Set();
-function toggleRecallMode(){ fpRecallMode = !fpRecallMode; revealedFP = new Set(); render(); }
-function revealFP(id){ revealedFP.add(id); render(); }
 function pageFlashpoints(){
   let items = state.flashpoints;
   if(fpFilter==='starred') items = items.filter(f=>f.starred);
@@ -2543,12 +2281,10 @@ function pageFlashpoints(){
   if(fpSearch) items = items.filter(f=>f.text.toLowerCase().includes(fpSearch.toLowerCase()));
   return `
   <div class="topbar"><div class="greet"><h1>Flashpoints</h1><p>Key points, formulas & traps — grouped by chapter. Star what you want to revisit.</p></div></div>
-  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-    <button class="btn ${fpRecallMode?'':'ghost'} sm" onclick="toggleRecallMode()">🧠 Recall mode ${fpRecallMode?'ON':'OFF'}</button>
+  <div style="display:flex;gap:10px;margin-bottom:14px;">
     <button class="btn ghost sm" onclick="exportFlashpoints()">⬇ Export</button>
     <button class="btn sm" onclick="openAddFlashpoint()">+ Add</button>
   </div>
-  ${fpRecallMode? `<p style="color:var(--sub);font-size:12px;margin:-8px 0 12px;">Recall mode: points stay blurred until you've written your own answer down first — passive re-reading doesn't build recall.</p>`:''}
   <input type="text" placeholder="Search all points..." value="${fpSearch}" oninput="fpSearch=this.value;render();" style="margin-bottom:14px;">
   <div class="chiprow">
     <span class="chip ${fpFilter==='All'?'active':''}" onclick="fpFilter='All';render();">All</span>
@@ -2560,14 +2296,7 @@ function pageFlashpoints(){
     ${items.length? items.slice().reverse().map(f=>`
       <div class="list-row">
         <span onclick="toggleStar('${f.id}')" style="cursor:pointer;color:${f.starred?'var(--amber)':'var(--line)'};font-size:18px;">★</span>
-        <div style="flex:1;">
-          <span class="badge" style="background:${SUBJECTS[f.subject].color}22;color:${SUBJECTS[f.subject].color}">${f.subject}</span> ${f.chapter?` · ${f.chapter}`:''}<br>
-          ${fpRecallMode && !revealedFP.has(f.id)? `
-            <div class="fp-blur-wrap">
-              <div class="fp-blur-text">${f.text}</div>
-              <button class="btn sm fp-reveal-btn" onclick="revealFP('${f.id}')">✍️ I have scribbled down my answer — reveal</button>
-            </div>` : f.text}
-        </div>
+        <div style="flex:1;"><span class="badge" style="background:${SUBJECTS[f.subject].color}22;color:${SUBJECTS[f.subject].color}">${f.subject}</span> ${f.chapter?` · ${f.chapter}`:''}<br>${f.text}</div>
       </div>`).join('') : `<div class="empty"><div class="big">⚡</div><h3>No flashpoints yet</h3><p>Capture key points, formulas and exam traps as you study.</p></div>`}
   </div>`;
 }
@@ -2596,16 +2325,23 @@ function exportFlashpoints(){
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='flashpoints.csv'; a.click();
 }
 
-/* ---------- TIMELINE ---------- */
+/* ---------- TIMELINE / HISTORY ---------- */
+let timelineFilter = 'All';
+function setTimelineFilter(k){ timelineFilter=k; render(); }
 function pageTimeline(){
+  const all = timelineFilter==='All'? state.sessions : state.sessions.filter(s=>s.subject===timelineFilter);
   const byDay = {};
-  state.sessions.forEach(s=>{ const d=s.start.slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
+  all.forEach(s=>{ const d=s.start.slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
   const days = Object.keys(byDay).sort().reverse();
   return `
-  <div class="topbar"><div class="greet"><h1>Timeline</h1><p>Every session placed by time of day. Length = real study time.</p></div></div>
+  <div class="topbar"><div class="greet"><h1>Timeline · History</h1><p>Full history of every past session, grouped by date.</p></div></div>
+  <div class="chiprow">
+    <span class="chip ${timelineFilter==='All'?'active':''}" onclick="setTimelineFilter('All')">All</span>
+    ${SUBJECT_KEYS.map(k=>`<span class="chip ${timelineFilter===k?'active':''}" onclick="setTimelineFilter('${k}')"><span class="dot" style="background:${SUBJECTS[k].color}"></span>${k}</span>`).join('')}
+  </div>
   ${days.length? days.map(d=>`
     <div class="section-title" style="margin:20px 0 8px;">${fmtDate(d)} <span class="hint">${minToHM(byDay[d].reduce((s,x)=>s+(x.durationMin||0),0))}</span></div>
-    <div class="card">${byDay[d].sort((a,b)=>a.start.localeCompare(b.start)).map(sessionRowHTML).join('')}</div>
+    <div class="card">${byDay[d].sort((a,b)=>a.start.localeCompare(b.start)).map(s=>sessionRowHTML(s,{showDate:false})).join('')}</div>
   `).join('') : `<div class="empty"><div class="big">📆</div><h3>No sessions yet</h3><p>Start one from the Session tab.</p></div>`}
   `;
 }
@@ -2669,15 +2405,8 @@ function pageDashboard(){
   const minDelta = thisWk.minutes - lastWk.minutes;
   const chDelta = thisWk.chaptersDone - lastWk.chaptersDone;
   const weak = weakTopics(keys, 5);
-  const pendingHW = pendingHWQuestions();
   return `
   <div class="topbar"><div class="greet"><h1>Dashboard</h1><p>Your whole prep at a glance${state.profile.group!=='BOTH'?` — showing ${GROUP_LABELS[state.profile.group]}`:''}.</p></div></div>
-
-  <div class="card hw-pending-chip" onclick="showPendingHWPopup()">
-    <div style="font-size:19px;flex-shrink:0;">📝</div>
-    <div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pending homework</div>
-    <div class="hw-pending-badge" style="background:${pendingHW>0?'#D64545':'#1D9C63'};">${pendingHW}</div>
-  </div>
 
   <div class="weekly-review-card">
     <div class="wr-hd">📅 Weekly review <span class="hint" style="color:#C9C0FF;">last 7 days vs the 7 before</span></div>
@@ -2689,7 +2418,7 @@ function pageDashboard(){
     ${weak.length? `
     <div class="wr-priorities">
       <div class="wr-priorities-hd">NEXT PRIORITIES</div>
-      ${weak.slice(0,3).map(w=>`<div class="wr-pr-row"><span class="wr-pr-dot" style="background:${SUBJECTS[w.k].color}"></span>${SUBJECTS[w.k].name}<span class="wr-pr-count">${w.unreadA} priority-A chapters remaining</span></div>`).join('')}
+      ${weak.slice(0,3).map(w=>`<div class="wr-pr-row"><span class="wr-pr-dot" style="background:${SUBJECTS[w.k].color}"></span>${SUBJECTS[w.k].name}<span class="wr-pr-count">${w.unreadA} priority-A unread</span></div>`).join('')}
     </div>` : ''}
     <div class="wr-insight">${
       thisWk.minutes===0 ? "No study logged this week yet — even a 20-minute session today restarts your momentum."
@@ -2701,9 +2430,9 @@ function pageDashboard(){
 
   <div class="grid cols-4">
     <div class="card tint-violet"><div class="stat-label">Overall progress</div><div class="stat-num">${overallPct}%</div><div class="stat-sub">${ss.done}/${ss.total} chapters first-read</div></div>
+    <div class="card"><div class="stat-label" style="color:var(--sub)">Total hours</div><div class="stat-num">${minToHM(totalMinutes())}</div><div class="stat-sub" style="color:var(--sub)">priority-weighted readiness ${priorityReadinessPct()}%</div></div>
     <div class="card" style="background:#FFEDF4;border:none;"><div class="stat-label" style="color:#C0356E">Streak</div><div class="stat-num" style="color:#C0356E">${currentStreak()} days</div></div>
     <div class="card tint-amber"><div class="stat-label">Days to exam</div><div class="stat-num">${daysToExam()===null?'—':daysToExam()}</div></div>
-    <div class="card"><div class="stat-label" style="color:var(--sub)">Total hours</div><div class="stat-num">${minToHM(totalMinutes())}</div><div class="stat-sub" style="color:var(--sub)">priority-weighted readiness ${priorityReadinessPct()}%</div></div>
     <div class="card" style="background:#E8F6EF;border:none;grid-column:span 1;"><div class="stat-label" style="color:#1D9C63;">Days studied</div><div class="stat-num" style="color:#1D9C63;">${daysStudiedCount()}</div></div>
   </div>
 
@@ -2748,8 +2477,8 @@ function pageDashboard(){
     <div class="progress-track"><div class="progress-fill" style="width:${100*done/chs.length}%;background:${SUBJECTS[k].color}"></div></div>
     <div class="spct">${done}/${chs.length}</div></div>`;
   }).join('')}</div>
-  <div class="section-title">Recent sessions</div>
-  <div class="card">${state.sessions.length? state.sessions.slice(-8).reverse().map(sessionRowHTML).join('') : `<div class="empty">No sessions yet.</div>`}</div>
+  <div class="section-title">Recent sessions <a style="float:right;cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13px;" onclick="go('timeline')">View full history →</a></div>
+  <div class="card">${state.sessions.length? state.sessions.slice(-8).reverse().map(s=>sessionRowHTML(s)).join('') : `<div class="empty">No sessions yet.</div>`}</div>
   `;
 }
 
@@ -2817,7 +2546,7 @@ function pageStrategyPace(){
   <div class="card">${weakest.map(w=>`
     <div class="subject-row"><div class="sname"><span class="swatch" style="background:${SUBJECTS[w.k].color}"></span>${w.k}</div>
     <div class="progress-track"><div class="progress-fill" style="width:${w.prog}%;background:${SUBJECTS[w.k].color}"></div></div>
-    <div class="spct" title="${w.conf.toFixed(1)}/5 readiness">${'★'.repeat(Math.round(w.conf))}${'☆'.repeat(5-Math.round(w.conf))}</div></div>`).join('')}</div>
+    <div class="spct">${w.conf.toFixed(1)}★</div></div>`).join('')}</div>
   <div class="section-title">Next best actions</div>
   ${actions.map((a,i)=>`<div class="strategy-item"><div class="num">${String(i+1).padStart(2,'0')}</div><div>${a}</div></div>`).join('')}
   `;
@@ -2951,21 +2680,12 @@ function pageSettings(){
     <button class="btn" onclick="saveWellnessSettings()" style="grid-column:1/-1;">Save wellness settings</button>
   </div>
 
-  <div class="section-title">Revision strategy <span class="hint">default: Spaced Repetition</span></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:10px;">
-    ${Object.entries(REVISION_STRATEGIES).map(([id,strat])=>`
-      <label class="rev-strat-opt ${s.revisionStrategy===id?'active':''}">
-        <input type="radio" name="revStrat" value="${id}" ${s.revisionStrategy===id?'checked':''} onchange="setRevisionStrategy('${id}')" style="margin-top:3px;">
-        <div>
-          <div style="font-weight:700;font-size:13.5px;">${strat.label} <span class="hint">${strat.short}</span></div>
-          <div style="font-size:12px;color:var(--sub);margin-top:2px;">${strat.desc}</div>
-        </div>
-      </label>`).join('')}
-  </div>
-  <div class="card two-col" style="margin-top:10px;">
-    <div class="field"><label class="field-label">Advanced: interval multiplier</label><input type="number" id="revMult" min="0.25" step="0.25" value="${s.revisionIntervalMultiplier||1}"></div>
-    <p class="hint" style="grid-column:1/-1;margin:-4px 0 4px;">1 = normal speed. 0.5 = review twice as often. 2 = half as often. Applies on top of whichever strategy is selected above.</p>
-    <button class="btn" style="grid-column:1/-1;" onclick="saveRevisionMultiplier()">Save</button>
+  <div class="section-title">Revision schedule <span class="hint">days after first reading</span></div>
+  <div class="card">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      ${s.revisionOffsets.map((o,i)=>`<input type="number" style="width:70px;" value="${o}" data-idx="${i}" class="revOffset">`).join('')}
+    </div>
+    <button class="btn" style="margin-top:12px;" onclick="saveRevisionOffsets()">Save schedule</button>
   </div>
 
   <div class="section-title">Security</div>
@@ -3061,15 +2781,10 @@ function saveWellnessSettings(){
   state.settings.breakReminderMin = parseInt(document.getElementById('stBreakMin').value)||0;
   save(); toast('Wellness settings saved');
 }
-function setRevisionStrategy(id){
-  if(!REVISION_STRATEGIES[id]) return;
-  state.settings.revisionStrategy = id;
-  save(); toast('Revision strategy set to ' + REVISION_STRATEGIES[id].label); render();
-}
-function saveRevisionMultiplier(){
-  const v = parseFloat(document.getElementById('revMult').value);
-  state.settings.revisionIntervalMultiplier = (v && v>0)? v : 1;
-  save(); toast('Saved');
+function saveRevisionOffsets(){
+  const vals = Array.from(document.querySelectorAll('.revOffset')).map(i=>parseInt(i.value)||0);
+  state.settings.revisionOffsets = vals;
+  save(); toast('Schedule saved');
 }
 function exportBackup(){
   const ok = triggerDownload('ca-karo-backup.json', JSON.stringify(state,null,2), 'application/json');
