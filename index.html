@@ -1115,6 +1115,12 @@ function pageToday(name){
 
   <div class="quote-card">💭 ${todaysQuote()}</div>
 
+  <div class="card hw-pending-chip" onclick="showPendingHWPopup()">
+    <div style="font-size:19px;flex-shrink:0;">📝</div>
+    <div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pending homework</div>
+    <div class="hw-pending-badge" style="background:${pendingHWQuestions()>0?'#D64545':'#1D9C63'};">${pendingHWQuestions()}</div>
+  </div>
+
   <div class="card tint-violet" style="margin-bottom:14px;display:flex;align-items:center;gap:16px;">
     <div style="flex-shrink:0;">
       <div class="stat-label">Overall completion${state.profile.group!=='BOTH'? ` · ${GROUP_LABELS[state.profile.group]}`:''}</div>
@@ -2795,15 +2801,8 @@ function pageDashboard(){
   const minDelta = thisWk.minutes - lastWk.minutes;
   const chDelta = thisWk.chaptersDone - lastWk.chaptersDone;
   const weak = weakTopics(keys, 5);
-  const pendingHW = pendingHWQuestions();
   return `
   <div class="topbar"><div class="greet"><h1>Dashboard</h1><p>Your whole prep at a glance${state.profile.group!=='BOTH'?` — showing ${GROUP_LABELS[state.profile.group]}`:''}.</p></div></div>
-
-  <div class="card hw-pending-chip" onclick="showPendingHWPopup()">
-    <div style="font-size:19px;flex-shrink:0;">📝</div>
-    <div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pending homework</div>
-    <div class="hw-pending-badge" style="background:${pendingHW>0?'#D64545':'#1D9C63'};">${pendingHW}</div>
-  </div>
 
   <div class="weekly-review-card">
     <div class="wr-hd">📅 Weekly review <span class="hint" style="color:#C9C0FF;">last 7 days vs the 7 before</span></div>
