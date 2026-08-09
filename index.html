@@ -201,9 +201,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 .hw-rev-split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid var(--violet);border-radius:16px;overflow:hidden;margin-bottom:16px;}
 .hw-rev-col{background:var(--card);padding:14px 16px;min-width:0;}
 .hw-rev-col+.hw-rev-col{border-left:1px solid var(--line);}
-/* Below 900px the two columns stack full-width instead of squeezing side by side — this rule
-   must come AFTER the base .hw-rev-split declaration above, or the cascade silently drops it
-   (equal specificity, later source order wins even when the earlier rule is behind a media query). */
 @media(max-width:900px){
   .hw-rev-split{grid-template-columns:1fr;}
   .hw-rev-col+.hw-rev-col{border-left:none;border-top:1px solid var(--line);}
@@ -695,7 +692,7 @@ function defaultState(){
   });
   return {
     profile:{name:"", examDate:"", theme:"light", group:"BOTH"},
-    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,7,14,30], revisionRule:{first:1, repeat:7}, goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
+    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,3,3,7], revisionScheduleV2:true, revisionRule:{first:1, repeat:7}, goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
     chapters,
     wellness:{water:{}, sleep:{}, mood:{}}, // date-keyed logs — water: glasses count, sleep: hours, mood: 'great'|'ok'|'low'
     sessions:[], // {id,subject,chapter,activity,mode,start,end,durationMin,status}
@@ -741,14 +738,30 @@ function migrateState(parsed){
       if(c.nextReviewDate===undefined) c.nextReviewDate = null;
     });
   });
-  // The Spaced Repetition Object: every chapter's current_stage (1-5, matching the
-  // standard day-1/3/7/14/30 cheat-sheet cycle) and next_review_date are derived fields,
-  // recomputed here so old saves (and any manual data edits) always reflect the live
-  // schedule + rule below. Anyone still on the old 1-3-7-30 default gets upgraded to the
-  // standard schedule — must happen BEFORE refreshRevisionSchedule runs below, or chapters
-  // get recomputed against the stale offsets first.
-  if(!merged.settings.revisionOffsets || !merged.settings.revisionOffsets.length || merged.settings.revisionOffsets.join(',')==='1,3,7,30'){
-    merged.settings.revisionOffsets = [1,3,7,14,30];
+  // The Spaced Repetition Object: every chapter's current_stage (1-5) and next_review_date
+  // are derived fields, recomputed here so old saves (and any manual data edits) always
+  // reflect the live schedule below.
+  // IMPORTANT — schedule model: revisionOffsets is a list of GAPS, not cumulative days.
+  // Stage 1 fires `offsets[0]` days after the chapter's revisionStartDate (when a lecture/
+  // session was first logged). Every stage AFTER that fires `offsets[stage-1]` days after the
+  // date the PREVIOUS stage was actually marked done — i.e. the clock for the next reminder
+  // only starts once you complete the one before it. This is what makes reminders "chain"
+  // forward off your real behaviour instead of piling up: if you fall behind and clear a
+  // backlog of overdue chapters in one sitting, each one's next reminder is freshly counted
+  // from today (not from some long-past fixed date), so they land on spread-out future days
+  // instead of all re-colliding on the same day again. Anyone still on the old cumulative
+  // (1,3,7,14,30 or 1,3,7,30) default is upgraded once to the new gap-based default —
+  // must happen BEFORE refreshRevisionSchedule runs below, or chapters get recomputed
+  // against the stale offsets first.
+  if(!merged.settings.revisionScheduleV2){
+    const cur = (merged.settings.revisionOffsets||[]).join(',');
+    if(!cur || cur==='1,3,7,30' || cur==='1,3,7,14,30'){
+      merged.settings.revisionOffsets = [1,3,3,3,7];
+    }
+    merged.settings.revisionScheduleV2 = true;
+  }
+  if(!merged.settings.revisionOffsets || !merged.settings.revisionOffsets.length){
+    merged.settings.revisionOffsets = [1,3,3,3,7];
   }
   SUBJECT_KEYS.forEach(k=> (merged.chapters[k]||[]).forEach(c=> refreshRevisionSchedule(c, merged)));
   if(!merged.homework) merged.homework = [];
@@ -889,38 +902,63 @@ function daysToExam(){ if(!state.profile.examDate) return null; return Math.max(
    UserProgress / TopicStatus table:
      current_stage    (c.currentStage)   — integer 0-5. 0 = clock hasn't started yet
                                             (no session logged for this chapter). 1-5 tracks
-                                            which of the Day-1 / Day-3 / Day-7 / Day-14 / Day-30
-                                            revision cycles is next due. Stays at 5 once fully revised.
+                                            which revision cycle is next due. Stays at 5 once
+                                            fully revised.
      next_review_date (c.nextReviewDate) — the date that stage is due, or null once mastered
                                             (all 5 stages logged) or not yet started.
    The clock (revisionStartDate) is set the moment ANY session is logged for a chapter —
    from the live timer (endSession) or a pasted/backdated log (submitQuickComplete) — never
-   from ticking a syllabus checkbox on its own. See markStageFromActivity(). */
+   from ticking a syllabus checkbox on its own. See markStageFromActivity().
+
+   CHAINED SCHEDULE MODEL — this is the important bit:
+   revisionOffsets() returns a list of GAPS (days), one per stage — NOT cumulative days from
+   the start. Stage 1 is due `gaps[0]` days after revisionStartDate (the day the lecture/
+   session was logged) — e.g. gap 1 = "revise it within 24 hours, the next day."
+   Every stage after that is due `gaps[stage-1]` days after the date the PREVIOUS stage was
+   actually marked complete (not after a fixed date computed back at day zero). So if you
+   watch a lecture on the 9th, its Day-1 reminder is the 10th; if you actually clear that
+   revision on the 10th, the next reminder is 10th + 3 = 13th; clear that on the 13th and the
+   one after is 13th + 3 = 16th — and so on. Fall behind and mark a few overdue chapters done
+   on the same day, and each one's NEXT reminder still counts forward from today, so they land
+   on spread-out future dates instead of all colliding again on the same day. */
 function revisionOffsets(s){
   const st = s || state;
   const o = st.settings.revisionOffsets;
-  return (o && o.length)? o : [1,3,7,14,30];
+  return (o && o.length)? o : [1,3,3,3,7];
+}
+/* Cumulative "day N" labels (assuming every stage is cleared exactly on its due date) — used
+   only for display, e.g. "Day 7 revision". The actual due date math never uses this directly;
+   it always chains off real completion dates via refreshRevisionSchedule(). */
+function revisionCumulativeOffsets(s){
+  const gaps = revisionOffsets(s);
+  let sum = 0;
+  return gaps.map(g=>{ sum += g; return sum; });
 }
 function revisionScheduleLabel(){
-  return revisionOffsets().map(d=>'day '+d).join(' → ');
+  return revisionOffsets().map(d=>'+'+d+'d').join(' → ');
 }
 function stageDayLabel(stage){
-  const o = revisionOffsets();
-  return 'Day ' + (o[stage-1] ?? o[o.length-1]);
+  const cum = revisionCumulativeOffsets();
+  return 'Day ' + (cum[stage-1] ?? cum[cum.length-1]);
 }
 /* Recomputes current_stage + next_review_date for one chapter from its revisionStartDate
-   and revStages log. Call this any time revisionStartDate is set or a stage is marked done —
-   it's cheap, so also called defensively inside revisionsDue()/revisionScheduleInRange() to
-   self-heal any chapter whose cached fields drifted (e.g. imported backups, manual edits). */
+   and revStages log, chaining each pending stage's due date off the date the stage before it
+   was actually completed. Call this any time revisionStartDate is set or a stage is marked
+   done — it's cheap, so also called defensively inside revisionsDue()/revisionScheduleInRange()
+   to self-heal any chapter whose cached fields drifted (e.g. imported backups, manual edits). */
 function refreshRevisionSchedule(c, s){
-  const offsets = revisionOffsets(s);
+  const gaps = revisionOffsets(s);
   if(!c.revisionStartDate){ c.currentStage = 0; c.nextReviewDate = null; return; }
   if(!c.revStages) c.revStages = {};
+  let anchor = c.revisionStartDate; // date the NEXT stage's countdown starts from
   let stage = 1;
-  while(stage<=offsets.length && c.revStages[stage]) stage++;
-  if(stage>offsets.length){ c.currentStage = offsets.length; c.nextReviewDate = null; return; } // mastered — all cycles in the schedule done
+  while(stage<=gaps.length && c.revStages[stage]){
+    anchor = c.revStages[stage]; // chain forward off the date this stage was actually completed
+    stage++;
+  }
+  if(stage>gaps.length){ c.currentStage = gaps.length; c.nextReviewDate = null; return; } // mastered — all cycles in the schedule done
   c.currentStage = stage;
-  c.nextReviewDate = addDays(c.revisionStartDate, offsets[stage-1]);
+  c.nextReviewDate = addDays(anchor, gaps[stage-1]);
 }
 function revisionsDue(){
   const due=[]; const today=todayISO();
@@ -935,21 +973,30 @@ function revisionsDue(){
   });
   return due.sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
 }
-/* Everything scheduled (any status) within [startISO, startISO+days) — powers the revision calendar. */
+/* Everything scheduled (any status) within [startISO, startISO+days) — powers the revision
+   calendar. Forecasts forward the same way refreshRevisionSchedule does: completed stages
+   chain off their real completion date, and any stage still pending is forecast assuming it
+   gets cleared on its own due date (the best guess available for stages that haven't happened
+   yet), so future stages in the preview still land on sensible, spread-out dates. */
 function revisionScheduleInRange(startISO, days){
   const endISO = addDays(startISO, days);
   const byDate = {};
   for(let i=0;i<days;i++){ byDate[addDays(startISO,i)] = []; }
-  const offsets = revisionOffsets();
+  const gaps = revisionOffsets();
   SUBJECT_KEYS.forEach(k=>{
     state.chapters[k].forEach(c=>{
       if(!c.revisionStartDate) return;
-      for(let stage=1; stage<=offsets.length; stage++){
-        const dueDate = addDays(c.revisionStartDate, offsets[stage-1]);
-        if(dueDate>=endISO) break; // offsets only grow — nothing later in range either
-        if(dueDate>=startISO && byDate[dueDate]){
-          byDate[dueDate].push({subject:k, chapter:c, stage, done: !!(c.revStages&&c.revStages[stage])});
+      let anchor = c.revisionStartDate;
+      for(let stage=1; stage<=gaps.length; stage++){
+        const dueDate = addDays(anchor, gaps[stage-1]);
+        const done = !!(c.revStages && c.revStages[stage]);
+        if(dueDate>=endISO && !done) break; // gaps are positive — nothing earlier left to find once we're past the window (unless already-completed stages need to keep chaining through it)
+        if(dueDate>=startISO && dueDate<endISO && byDate[dueDate]){
+          byDate[dueDate].push({subject:k, chapter:c, stage, done});
         }
+        // advance the anchor for the next stage: chain off the real completion date if this
+        // stage is done, otherwise forecast forward from this stage's own due date
+        anchor = done ? c.revStages[stage] : dueDate;
       }
     });
   });
@@ -973,7 +1020,7 @@ const ROUTES = [
   {id:'finalrev', label:'Exam Countdown Plan', icon:'🏁', group:'plan'},
   {id:'strategy', label:'Strategy', icon:'🧠', group:'plan'},
   {id:'flashpoints', label:'Flashpoints', icon:'⚡', group:'reference'},
-  {id:'timeline', label:'History', icon:'🕘', group:'reference'},
+  {id:'timeline', label:'History', icon:'📆', group:'reference'},
   {id:'settings', label:'Settings', icon:'⚙️', group:'reference'}
 ];
 const NAV_GROUP_LABELS = {track:'Track', plan:'Plan', reference:'Reference'};
@@ -1114,12 +1161,6 @@ function pageToday(name){
   </div>
 
   <div class="quote-card">💭 ${todaysQuote()}</div>
-
-  <div class="card hw-pending-chip" onclick="showPendingHWPopup()">
-    <div style="font-size:19px;flex-shrink:0;">📝</div>
-    <div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pending homework</div>
-    <div class="hw-pending-badge" style="background:${pendingHWQuestions()>0?'#D64545':'#1D9C63'};">${pendingHWQuestions()}</div>
-  </div>
 
   <div class="card tint-violet" style="margin-bottom:14px;display:flex;align-items:center;gap:16px;">
     <div style="flex-shrink:0;">
@@ -1295,10 +1336,7 @@ function pageSession(){
   return `
   <div class="topbar"><div class="greet"><h1>Start a session</h1><p>Pick an activity — date & time fill in automatically.</p></div></div>
   <div class="quote-card">💭 ${todaysQuote()}</div>
-  <div style="display:flex;gap:16px;flex-wrap:wrap;">
-    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="openQuickComplete()">⚡ Quick-complete a past session</a>
-    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="go('timeline')">🕘 View session history</a>
-  </div>
+  <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:13.5px;" onclick="openQuickComplete()">⚡ Quick-complete a past session</a>
   <div class="activity-grid">
     ${ACTIVITIES.map(a=>`
       <div class="activity-card" style="--act-color:${a.color};--act-soft:${a.soft};" onclick="pickActivity('${a.id}')">
@@ -2475,7 +2513,10 @@ function todoCardHTML(){
       ${revBody}
     </div>
   </div>
-  <div style="text-align:right;margin:-8px 0 16px;"><a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:12.5px;" onclick="go('revisions')">🗓️ Open revision calendar →</a></div>`;
+  <div style="display:flex;justify-content:flex-end;gap:16px;flex-wrap:wrap;margin:-8px 0 16px;">
+    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:12.5px;" onclick="go('timeline')">📜 View past session &amp; lecture history →</a>
+    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:12.5px;" onclick="go('revisions')">🗓️ Open revision calendar →</a>
+  </div>`;
 }
 /* "Add to phone" — generates a standard .ics calendar file for the homework's due date.
    Opening it prompts the phone's Calendar/Reminders app to add an event — works fully
@@ -2703,42 +2744,35 @@ function exportFlashpoints(){
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='flashpoints.csv'; a.click();
 }
 
-/* ---------- TIMELINE / SESSION HISTORY ---------- */
-let tlSubjFilter = "All";
-let tlSearch = "";
-function tlSetSubj(s){ tlSubjFilter=s; render(); }
-function tlSetSearch(v){ tlSearch=v; render(); }
+/* ---------- TIMELINE / HISTORY (past sessions & lectures) ---------- */
+let tlSubjectFilter = 'all';
+let tlActivityFilter = 'all';
+function tlSetSubject(k){ tlSubjectFilter=k; render(); }
+function tlSetActivity(a){ tlActivityFilter=a; render(); }
 function pageTimeline(){
-  let list = state.sessions.slice();
-  if(tlSubjFilter!=='All') list = list.filter(s=>s.subject===tlSubjFilter);
-  if(tlSearch.trim()){
-    const q = tlSearch.trim().toLowerCase();
-    list = list.filter(s=> (s.chapter||'').toLowerCase().includes(q) || (s.topic||'').toLowerCase().includes(q) || SUBJECTS[s.subject].name.toLowerCase().includes(q));
-  }
+  let sessions = state.sessions.slice();
+  if(tlSubjectFilter!=='all') sessions = sessions.filter(s=>s.subject===tlSubjectFilter);
+  if(tlActivityFilter!=='all') sessions = sessions.filter(s=>s.activity===tlActivityFilter);
+
   const byDay = {};
-  list.forEach(s=>{ const d=s.start.slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
+  sessions.forEach(s=>{ const d=s.start.slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
   const days = Object.keys(byDay).sort().reverse();
-  const totalMin = list.reduce((s,x)=>s+(x.durationMin||0),0);
+  const keys = activeSubjectKeys();
 
   return `
-  <div class="topbar"><div class="greet"><h1>Session History</h1><p>Every lecture, reading and revision you've logged — searchable and filterable.</p></div></div>
-
-  <div class="hw-top-strip">
-    <div class="hw-top-cell card"><div class="hw-top-val">${list.length}</div><div class="hw-top-label">Sessions</div></div>
-    <div class="hw-top-cell card"><div class="hw-top-val">${minToHM(totalMin)}</div><div class="hw-top-label">Total time</div></div>
-    <div class="hw-top-cell card"><div class="hw-top-val">${days.length}</div><div class="hw-top-label">Days active</div></div>
+  <div class="topbar"><div class="greet"><h1>History</h1><p>Every past session and lecture, placed by time of day. Length = real study time.</p></div></div>
+  <div class="chiprow">
+    <span class="chip ${tlSubjectFilter==='all'?'active':''}" onclick="tlSetSubject('all')">All subjects</span>
+    ${keys.map(k=>`<span class="chip ${tlSubjectFilter===k?'active':''}" onclick="tlSetSubject('${k}')"><span class="dot" style="background:${SUBJECTS[k].color}"></span>${k}</span>`).join('')}
   </div>
-
-  <input type="text" placeholder="🔍 Search by chapter, topic or subject…" value="${escapeHtml(tlSearch)}" oninput="tlSetSearch(this.value)" style="width:100%;margin-bottom:10px;">
-
-  <div class="chiprow" style="margin-top:0;">
-    ${["All",...activeSubjectKeys()].map(s=>`<span class="chip ${tlSubjFilter===s?'active':''}" onclick="tlSetSubj('${s}')">${s}</span>`).join('')}
+  <div class="chiprow" style="margin-top:-6px;">
+    <span class="chip ${tlActivityFilter==='all'?'active':''}" onclick="tlSetActivity('all')">All activities</span>
+    ${ACTIVITIES.map(a=>`<span class="chip ${tlActivityFilter===a.id?'active':''}" onclick="tlSetActivity('${a.id}')">${a.icon} ${a.label}</span>`).join('')}
   </div>
-
   ${days.length? days.map(d=>`
-    <div class="section-title" style="margin:20px 0 8px;">${d===todayISO()?'Today':fmtDate(d)} <span class="hint">${minToHM(byDay[d].reduce((s,x)=>s+(x.durationMin||0),0))}</span></div>
-    <div class="card">${byDay[d].sort((a,b)=>b.start.localeCompare(a.start)).map(sessionRowHTML).join('')}</div>
-  `).join('') : `<div class="empty"><div class="big">📆</div><h3>No sessions found</h3><p>${state.sessions.length? 'Try a different search or filter.' : 'Start one from the Session tab.'}</p></div>`}
+    <div class="section-title" style="margin:20px 0 8px;">${fmtDate(d)} <span class="hint">${minToHM(byDay[d].reduce((s,x)=>s+(x.durationMin||0),0))}</span></div>
+    <div class="card">${byDay[d].sort((a,b)=>a.start.localeCompare(b.start)).map(sessionRowHTML).join('')}</div>
+  `).join('') : `<div class="empty"><div class="big">📆</div><h3>No sessions yet</h3><p>${state.sessions.length? 'Nothing matches this filter.' : 'Start one from the Session tab.'}</p></div>`}
   `;
 }
 
@@ -2801,8 +2835,15 @@ function pageDashboard(){
   const minDelta = thisWk.minutes - lastWk.minutes;
   const chDelta = thisWk.chaptersDone - lastWk.chaptersDone;
   const weak = weakTopics(keys, 5);
+  const pendingHW = pendingHWQuestions();
   return `
   <div class="topbar"><div class="greet"><h1>Dashboard</h1><p>Your whole prep at a glance${state.profile.group!=='BOTH'?` — showing ${GROUP_LABELS[state.profile.group]}`:''}.</p></div></div>
+
+  <div class="card hw-pending-chip" onclick="showPendingHWPopup()">
+    <div style="font-size:19px;flex-shrink:0;">📝</div>
+    <div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Pending homework</div>
+    <div class="hw-pending-badge" style="background:${pendingHW>0?'#D64545':'#1D9C63'};">${pendingHW}</div>
+  </div>
 
   <div class="weekly-review-card">
     <div class="wr-hd">📅 Weekly review <span class="hint" style="color:#C9C0FF;">last 7 days vs the 7 before</span></div>
@@ -3078,13 +3119,13 @@ function pageSettings(){
 
   <div class="section-title">Revision schedule <span class="hint">spaced repetition</span></div>
   <div class="card">
-    <p class="hint" style="margin:0 0 10px;">The revision clock starts the moment you log <b>any</b> session for a chapter — live timer or Log past session — not when you tick the syllabus checkbox. Each stage fires this many days after that first session; stage 5 is your mastery pass. Default follows the standard 1-3-7-14-30 spaced-repetition cheat sheet.</p>
+    <p class="hint" style="margin:0 0 10px;">The revision clock starts the moment you log <b>any</b> session for a chapter — live timer or Log past session — not when you tick the syllabus checkbox. Stage 1 fires this many days after that first session. <b>Every stage after that fires this many days after you actually mark the previous stage done</b> — so if you finish a revision late, the next one shifts forward with it instead of piling up on old dates. Currently: <b>${revisionScheduleLabel()}</b> (cumulative, if cleared on time: ${revisionCumulativeOffsets().map(d=>'Day '+d).join(' → ')}).</p>
     <div class="two-col">
-      <div class="field"><label class="field-label">Stage 1 (days)</label><input type="number" id="revS1" min="1" value="${revisionOffsets()[0]}"></div>
-      <div class="field"><label class="field-label">Stage 2 (days)</label><input type="number" id="revS2" min="1" value="${revisionOffsets()[1]}"></div>
-      <div class="field"><label class="field-label">Stage 3 (days)</label><input type="number" id="revS3" min="1" value="${revisionOffsets()[2]}"></div>
-      <div class="field"><label class="field-label">Stage 4 (days)</label><input type="number" id="revS4" min="1" value="${revisionOffsets()[3]}"></div>
-      <div class="field"><label class="field-label">Stage 5 (days · mastery)</label><input type="number" id="revS5" min="1" value="${revisionOffsets()[4]}"></div>
+      <div class="field"><label class="field-label">Stage 1 — days after lecture logged</label><input type="number" id="revS1" min="1" value="${revisionOffsets()[0]}"></div>
+      <div class="field"><label class="field-label">Stage 2 — days after Stage 1 done</label><input type="number" id="revS2" min="1" value="${revisionOffsets()[1]}"></div>
+      <div class="field"><label class="field-label">Stage 3 — days after Stage 2 done</label><input type="number" id="revS3" min="1" value="${revisionOffsets()[2]}"></div>
+      <div class="field"><label class="field-label">Stage 4 — days after Stage 3 done</label><input type="number" id="revS4" min="1" value="${revisionOffsets()[3]}"></div>
+      <div class="field"><label class="field-label">Stage 5 — days after Stage 4 done (mastery)</label><input type="number" id="revS5" min="1" value="${revisionOffsets()[4]}"></div>
     </div>
     <button class="btn" style="width:100%;margin-top:10px;" onclick="saveRevisionOffsets()">Save schedule</button>
   </div>
@@ -3183,9 +3224,10 @@ function saveWellnessSettings(){
   save(); toast('Wellness settings saved');
 }
 function saveRevisionOffsets(){
-  const defaults = [1,3,7,14,30];
+  const defaults = [1,3,3,3,7];
+  // each field is a GAP in days from the previous stage's completion (stage 1 counts from
+  // when the lecture/session was logged) — gaps don't need to be increasing, e.g. 1,3,3,3,7 is fine
   const vals = ['revS1','revS2','revS3','revS4','revS5'].map((id,i)=> Math.max(1, parseInt(document.getElementById(id).value)||defaults[i]));
-  for(let i=1;i<vals.length;i++){ if(vals[i]<=vals[i-1]) vals[i] = vals[i-1]+1; } // keep strictly increasing
   state.settings.revisionOffsets = vals;
   // re-derive current_stage/next_review_date for every chapter under the new rule immediately
   SUBJECT_KEYS.forEach(k=> state.chapters[k].forEach(c=> refreshRevisionSchedule(c)));
