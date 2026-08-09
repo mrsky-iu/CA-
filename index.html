@@ -692,7 +692,7 @@ function defaultState(){
   });
   return {
     profile:{name:"", examDate:"", theme:"light", group:"BOTH"},
-    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,3,3,7], revisionScheduleV2:true, revisionRule:{first:1, repeat:7}, goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
+    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,7,15,30], revisionScheduleV3:true, revisionRule:{first:1, repeat:7}, goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
     chapters,
     wellness:{water:{}, sleep:{}, mood:{}}, // date-keyed logs — water: glasses count, sleep: hours, mood: 'great'|'ok'|'low'
     sessions:[], // {id,subject,chapter,activity,mode,start,end,durationMin,status}
@@ -749,19 +749,21 @@ function migrateState(parsed){
   // forward off your real behaviour instead of piling up: if you fall behind and clear a
   // backlog of overdue chapters in one sitting, each one's next reminder is freshly counted
   // from today (not from some long-past fixed date), so they land on spread-out future days
-  // instead of all re-colliding on the same day again. Anyone still on the old cumulative
-  // (1,3,7,14,30 or 1,3,7,30) default is upgraded once to the new gap-based default —
+  // instead of all re-colliding on the same day again. Default gaps are the classic
+  // 1 → 3 → 7 → 15 → 30 spaced-repetition cadence. Anyone on an older default (cumulative
+  // 1,3,7,14,30 / 1,3,7,30, or the earlier gap-based 1,3,3,3,7) is upgraded once to this —
   // must happen BEFORE refreshRevisionSchedule runs below, or chapters get recomputed
   // against the stale offsets first.
-  if(!merged.settings.revisionScheduleV2){
+  if(!merged.settings.revisionScheduleV3){
     const cur = (merged.settings.revisionOffsets||[]).join(',');
-    if(!cur || cur==='1,3,7,30' || cur==='1,3,7,14,30'){
-      merged.settings.revisionOffsets = [1,3,3,3,7];
+    if(!cur || cur==='1,3,7,30' || cur==='1,3,7,14,30' || cur==='1,3,3,3,7'){
+      merged.settings.revisionOffsets = [1,3,7,15,30];
     }
     merged.settings.revisionScheduleV2 = true;
+    merged.settings.revisionScheduleV3 = true;
   }
   if(!merged.settings.revisionOffsets || !merged.settings.revisionOffsets.length){
-    merged.settings.revisionOffsets = [1,3,3,3,7];
+    merged.settings.revisionOffsets = [1,3,7,15,30];
   }
   SUBJECT_KEYS.forEach(k=> (merged.chapters[k]||[]).forEach(c=> refreshRevisionSchedule(c, merged)));
   if(!merged.homework) merged.homework = [];
@@ -924,7 +926,7 @@ function daysToExam(){ if(!state.profile.examDate) return null; return Math.max(
 function revisionOffsets(s){
   const st = s || state;
   const o = st.settings.revisionOffsets;
-  return (o && o.length)? o : [1,3,3,3,7];
+  return (o && o.length)? o : [1,3,7,15,30];
 }
 /* Cumulative "day N" labels (assuming every stage is cleared exactly on its due date) — used
    only for display, e.g. "Day 7 revision". The actual due date math never uses this directly;
@@ -3224,9 +3226,10 @@ function saveWellnessSettings(){
   save(); toast('Wellness settings saved');
 }
 function saveRevisionOffsets(){
-  const defaults = [1,3,3,3,7];
+  const defaults = [1,3,7,15,30];
   // each field is a GAP in days from the previous stage's completion (stage 1 counts from
-  // when the lecture/session was logged) — gaps don't need to be increasing, e.g. 1,3,3,3,7 is fine
+  // when the lecture/session was logged) — gaps don't need to be increasing, though the
+  // classic cadence 1,3,7,15,30 does widen as you go
   const vals = ['revS1','revS2','revS3','revS4','revS5'].map((id,i)=> Math.max(1, parseInt(document.getElementById(id).value)||defaults[i]));
   state.settings.revisionOffsets = vals;
   // re-derive current_stage/next_review_date for every chapter under the new rule immediately
