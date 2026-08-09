@@ -135,6 +135,9 @@ input[type=text],input[type=number],input[type=date],select,textarea{
   width:100%;padding:11px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);font-size:14px;outline:none;
 }
 input:focus,select:focus,textarea:focus{border-color:var(--violet);}
+.hwf-qr-input{color:#D64545;font-weight:800;border-color:rgba(214,69,69,.4);background:rgba(214,69,69,.05);}
+.hwf-qr-input:focus{border-color:#D64545;}
+.hwf-qr-input::placeholder{color:rgba(214,69,69,.55);font-weight:600;}
 .topic-textarea{resize:none;overflow:hidden;min-height:44px;line-height:1.5;font-family:inherit;white-space:pre-wrap;word-break:break-word;}
 .field{margin-bottom:14px;}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -176,7 +179,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 .badge{display:inline-block;padding:3px 9px;border-radius:8px;font-size:11px;font-weight:700;background:var(--violet-soft);color:var(--violet-deep);}
 .strategy-item{display:flex;gap:14px;padding:16px;border-radius:16px;background:var(--violet-soft);margin-bottom:10px;}
 .strategy-item .num{font-family:'Fredoka',sans-serif;font-weight:700;font-size:20px;color:var(--violet);flex-shrink:0;}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:14px;font-size:13.5px;font-weight:600;z-index:400;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .25s, bottom .25s;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 20px;border-radius:14px;font-size:13.5px;font-weight:600;z-index:400;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .25s, bottom .25s;max-width:min(92vw,420px);text-align:center;line-height:1.45;}
 .toast.show{opacity:1;bottom:34px;}
 
 @media(max-width:900px){
@@ -189,7 +192,38 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
   .tabbar-mobile button{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--sub);font-weight:700;padding:4px 8px;flex:1;}
   .tabbar-mobile button.active{color:var(--violet);}
   .tabbar-mobile .ic{font-size:19px;}
+  /* iOS/Android auto-zooms the page when a focused input has font-size under 16px — this was
+     the main cause of the janky mobile feel. Force 16px only on touch-width screens so desktop
+     keeps its tighter 14px look. */
+  input[type=text],input[type=number],input[type=date],select,textarea{font-size:16px;}
+  .hw-rev-split{grid-template-columns:1fr;}
 }
+/* ---------- HOMEWORK + REVISION SPLIT PANEL (replaces the old "In progress" tab) ---------- */
+.hw-rev-split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid var(--violet);border-radius:16px;overflow:hidden;margin-bottom:16px;}
+.hw-rev-col{background:var(--card);padding:14px 16px;min-width:0;}
+.hw-rev-col+.hw-rev-col{border-left:1px solid var(--line);}
+@media(max-width:900px){.hw-rev-col+.hw-rev-col{border-left:none;border-top:1px solid var(--line);}}
+.hw-rev-hd{font-size:12.5px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.hw-rev-row{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);}
+.hw-rev-row:last-child{border-bottom:none;}
+.hw-meta-small{font-size:10.5px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:.03em;display:flex;align-items:center;gap:6px;}
+.hw-qcount{color:#D64545;font-weight:800;font-size:11.5px;}
+.hw-topic-small{color:#D64545;font-weight:700;font-size:11.5px;}
+.notif-badge{background:var(--coral);color:#fff;font-size:10.5px;font-weight:800;border-radius:999px;padding:2px 8px;cursor:pointer;}
+.start-session-badge{position:absolute;top:-7px;right:-7px;background:#D64545;color:#fff;font-size:10px;font-weight:800;
+  border-radius:999px;min-width:18px;height:18px;padding:0 4px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 0 2px var(--card);animation:pulseUrgent 1.8s infinite;}
+.hw-bell-btn{position:relative;width:40px;height:40px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);
+  font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.notif-badge.urgent{background:#D64545;animation:pulseUrgent 1.8s infinite;}
+.urgent-tag{background:#D64545;color:#fff;font-size:9px;font-weight:800;border-radius:6px;padding:1px 6px;letter-spacing:.03em;}
+.hw-rev-row.urgent{background:rgba(214,69,69,.07);border-radius:10px;margin:0 -8px;padding:7px 8px;}
+@keyframes pulseUrgent{0%{box-shadow:0 0 0 0 rgba(214,69,69,.5);}70%{box-shadow:0 0 0 7px rgba(214,69,69,0);}100%{box-shadow:0 0 0 0 rgba(214,69,69,0);}}
+.notif-collapsed{width:100%;display:flex;align-items:center;gap:10px;background:var(--violet-soft);border:none;border-radius:12px;padding:12px 14px;cursor:pointer;font-size:12.5px;color:var(--violet-deep);font-weight:700;text-align:left;font-family:inherit;}
+.notif-collapsed.urgent{background:rgba(214,69,69,.12);color:#D64545;}
+.notif-collapsed-count{font-size:20px;font-weight:800;line-height:1;flex-shrink:0;}
+.notif-chip-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.notif-chip{background:var(--violet-soft);color:var(--violet-deep);font-size:11px;font-weight:700;border-radius:999px;padding:4px 10px;}
 .more-sheet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .more-sheet-grid .navlink{background:var(--violet-soft);border-radius:14px;justify-content:flex-start;}
 .more-sheet-label{font-size:10.5px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin:14px 2px 8px;}
@@ -279,9 +313,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 @media(min-width:700px){.home-stat-grid{grid-template-columns:repeat(4,1fr);}}
 .home-stat-grid .card{min-width:0;}
 .hw-pending-chip{width:min(230px,55%);display:flex;align-items:center;gap:9px;padding:10px 12px;margin-bottom:14px;cursor:pointer;}
-.home-chip-row{display:flex;gap:10px;margin-bottom:14px;}
-.home-chip-row .hw-pending-chip{width:auto;flex:1;min-width:0;margin-bottom:0;}
-.mini-badge{position:absolute;top:-7px;right:-7px;color:#fff;font-weight:800;font-size:10px;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 0 2px var(--bg);}
 .hw-pending-badge{color:#fff;font-weight:800;font-size:12px;min-width:24px;height:24px;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0 7px;flex-shrink:0;}
 .rev-cal-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;}
 .rev-cal-day{flex:0 0 auto;width:56px;min-height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 4px;scroll-snap-align:start;position:relative;}
@@ -296,18 +327,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 .rev-cal-day.overdue{background:#FDEDED;border-color:#F3B7B7;}
 .rev-cal-day.overdue .rev-cal-dow{color:#D64545;}
 .rev-cal-day.overdue .rev-cal-num{color:#D64545;font-size:18px;}
-.box-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
-.box-col{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--violet);border-radius:14px;padding:12px 6px;text-align:center;}
-.box-col-hd{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
-.box-col-count{font-size:22px;font-weight:800;font-family:'Fredoka',sans-serif;}
-.box-col-sub{font-size:10px;color:var(--sub);margin-top:2px;}
-@media(max-width:480px){.box-grid{grid-template-columns:repeat(2,1fr);}}
-.sprint-banner{background:linear-gradient(135deg,#FF6B4A,#E8493C);color:#fff;border-radius:16px;padding:14px 16px;font-size:13.5px;margin-bottom:14px;box-shadow:var(--shadow);}
-.rev-strat-opt{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:12px;border:1.5px solid var(--line);cursor:pointer;}
-.rev-strat-opt.active{border-color:var(--violet);background:var(--violet-soft);}
-.fp-blur-wrap{position:relative;min-height:38px;display:flex;align-items:center;}
-.fp-blur-text{filter:blur(5px);opacity:.55;user-select:none;pointer-events:none;}
-.fp-reveal-btn{position:absolute;left:0;top:50%;transform:translateY(-50%);white-space:normal;text-align:left;}
 .syl-stat{flex:1;min-width:0;background:var(--card);border-radius:14px;padding:10px 8px;border:1px solid var(--line);text-align:center;}
 .syl-stat .lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--sub);font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .syl-stat .val{font-size:19px;font-weight:700;font-family:'Fredoka',sans-serif;line-height:1;}
@@ -664,16 +683,15 @@ function defaultState(){
   const chapters = {};
   SUBJECT_KEYS.forEach(k=>{
     chapters[k] = SUBJECTS[k].chapters.map((name,i)=>({
-      id:k+"_"+i, name, firstRead:false, firstReadDate:null, revisionStartDate:null, priority:autoPriority(k,i), notes:"",
+      id:k+"_"+i, name, firstRead:false, firstReadDate:null, revisionStartDate:null, currentStage:0, nextReviewDate:null, priority:autoPriority(k,i), notes:"",
       stages:{lecture:false, revlecture:false, reading:false, questions:false},
       starCount:6, starsFilled:0, revStages:{} // {1:true,7:true,...}
     }));
   });
   return {
     profile:{name:"", examDate:"", theme:"light", group:"BOTH"},
-    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,7,14], revisionRule:{first:1, repeat:7}, revisionStrategy:'SPACED', revisionIntervalMultiplier:1, goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
+    settings:{pomodoro:{work:25,brk:5,longBrk:15,every:4}, revisionOffsets:[1,3,7,14,30], revisionRule:{first:1, repeat:7}, goodDayH:8, decentDayH:6, lastBackupAt:null, waterGoal:8, breakReminderMin:50},
     chapters,
-    errorLog:[], // {id, subject, chapterId, chapterName, addedDate, cleanStreak, nextRetryDate} — failed revisions, retried every 24h until clean twice in a row
     wellness:{water:{}, sleep:{}, mood:{}}, // date-keyed logs — water: glasses count, sleep: hours, mood: 'great'|'ok'|'low'
     sessions:[], // {id,subject,chapter,activity,mode,start,end,durationMin,status}
     tests:[], // {id,paper,type,date,durationMin,marks,total,status}
@@ -714,8 +732,20 @@ function migrateState(parsed){
       if(c.starCount===undefined) c.starCount = 6;
       if(c.starsFilled===undefined) c.starsFilled = c.firstRead? c.starCount : 0;
       if(c.revisionStartDate===undefined) c.revisionStartDate = c.firstReadDate || null; // preserves existing revision schedules
+      if(c.currentStage===undefined) c.currentStage = 0;
+      if(c.nextReviewDate===undefined) c.nextReviewDate = null;
     });
   });
+  // The Spaced Repetition Object: every chapter's current_stage (1-5, matching the
+  // standard day-1/3/7/14/30 cheat-sheet cycle) and next_review_date are derived fields,
+  // recomputed here so old saves (and any manual data edits) always reflect the live
+  // schedule + rule below. Anyone still on the old 1-3-7-30 default gets upgraded to the
+  // standard schedule — must happen BEFORE refreshRevisionSchedule runs below, or chapters
+  // get recomputed against the stale offsets first.
+  if(!merged.settings.revisionOffsets || !merged.settings.revisionOffsets.length || merged.settings.revisionOffsets.join(',')==='1,3,7,30'){
+    merged.settings.revisionOffsets = [1,3,7,14,30];
+  }
+  SUBJECT_KEYS.forEach(k=> (merged.chapters[k]||[]).forEach(c=> refreshRevisionSchedule(c, merged)));
   if(!merged.homework) merged.homework = [];
   merged.homework.forEach(hw=>{
     if(hw.completedDate===undefined) hw.completedDate = null;
@@ -745,9 +775,6 @@ function migrateState(parsed){
   if(merged.settings.waterGoal===undefined) merged.settings.waterGoal = 8;
   if(merged.settings.breakReminderMin===undefined) merged.settings.breakReminderMin = 50;
   if(!merged.settings.revisionRule) merged.settings.revisionRule = {first:1, repeat:7}; // 1st revision +1 day, then every 7 days thereafter — old data keeps its completed revStages as-is
-  if(!merged.settings.revisionStrategy) merged.settings.revisionStrategy = 'SPACED';
-  if(merged.settings.revisionIntervalMultiplier===undefined) merged.settings.revisionIntervalMultiplier = 1;
-  if(!merged.errorLog) merged.errorLog = [];
   if(!merged.security) merged.security = {pinHash:null, enabled:false};
   return merged;
 }
@@ -803,11 +830,11 @@ function triggerDownload(filename, content, mime){
   }
 }
 
-function toast(msg){
+function toast(msg, ms){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toast._t);
-  toast._t = setTimeout(()=>t.classList.remove('show'), 2200);
+  toast._t = setTimeout(()=>t.classList.remove('show'), ms||2200);
 }
 
 /* ---------- date helpers ---------- */
@@ -852,83 +879,52 @@ function subjectPriorityReadiness(k){
 function inProgressSessions(){ return state.sessions.filter(s=>s.status==='inprogress'); }
 function daysToExam(){ if(!state.profile.examDate) return null; return Math.max(0,daysBetween(todayISO(), state.profile.examDate)); }
 
-/* revision due calc */
-/* Three selectable strategies, all built on the same cumulative-offset-from-revisionStartDate
-   engine (no per-chapter timestamp math needed elsewhere in the app):
-   - SPACED (default): classic 1-3-7-30 day rule, then repeats every 30 days.
-   - BOX (Leitner): 2-4-7-90 day boxes, then repeats every 90 days.
-   - SPRINT: compressed 1-2-4-6 day loop for the final stretch before the exam, then repeats every 2 days.
-   A per-user interval_multiplier can speed up or slow down any of the three. */
-const REVISION_STRATEGIES = {
-  SPACED: {label:'Spaced Repetition', short:'1‑3‑7‑30 day rule', desc:'The platform default — proven, steady long-term retention.', table:[1,3,7,30], tail:30, failOffsetDays:1, theme:null},
-  BOX:    {label:'Box System (Leitner)', short:'2‑4‑7‑90 day boxes', desc:'Great for definitions, sections & formulas — Law, Audit. Any miss drops the card straight back to Box 1.', table:[2,4,7,90], tail:90, failOffsetDays:2, theme:null},
-  SPRINT: {label:'Exam Sprint', short:'1‑2‑4‑6 day loop', desc:'High-density loop for the final stretch — switch to this once you are under ~60 days from the exam.', table:[1,2,4,6], tail:2, failOffsetDays:0, theme:'sprint'}
-};
-function currentRevisionStrategy(){
-  return REVISION_STRATEGIES[state.settings.revisionStrategy] || REVISION_STRATEGIES.SPACED;
-}
-function revisionOffsetForStage(stage){
-  const strat = currentRevisionStrategy();
-  const mult = Number(state.settings.revisionIntervalMultiplier)||1;
-  const table = strat.table;
-  let raw;
-  if(stage<=table.length) raw = table[stage-1];
-  else raw = table[table.length-1] + strat.tail*(stage-table.length);
-  return Math.max(1, Math.round(raw*mult));
+/* ---------- THE SPACED REPETITION OBJECT ----------
+   Every chapter carries two derived-but-cached fields, exactly like columns on a
+   UserProgress / TopicStatus table:
+     current_stage    (c.currentStage)   — integer 0-5. 0 = clock hasn't started yet
+                                            (no session logged for this chapter). 1-5 tracks
+                                            which of the Day-1 / Day-3 / Day-7 / Day-14 / Day-30
+                                            revision cycles is next due. Stays at 5 once fully revised.
+     next_review_date (c.nextReviewDate) — the date that stage is due, or null once mastered
+                                            (all 5 stages logged) or not yet started.
+   The clock (revisionStartDate) is set the moment ANY session is logged for a chapter —
+   from the live timer (endSession) or a pasted/backdated log (submitQuickComplete) — never
+   from ticking a syllabus checkbox on its own. See markStageFromActivity(). */
+function revisionOffsets(s){
+  const st = s || state;
+  const o = st.settings.revisionOffsets;
+  return (o && o.length)? o : [1,3,7,14,30];
 }
 function revisionScheduleLabel(){
-  const strat = currentRevisionStrategy();
-  return `${strat.label} (${strat.short})`;
+  return revisionOffsets().map(d=>'day '+d).join(' → ');
 }
-/* "Got it wrong" — hard-resets the chapter's cumulative schedule anchor to today (or, for Sprint,
-   to "yesterday" so stage 1's normal 1-day offset lands on TODAY, approximating same-day/same-night
-   retest at our date-level granularity), clears completed stages, and logs it to the Error Log. */
-function reviseGotWrong(subj, chId){
-  const c = state.chapters[subj].find(x=>x.id===chId);
-  if(!c) return;
-  const strat = currentRevisionStrategy();
-  c.revisionStartDate = strat.failOffsetDays===0? addDays(todayISO(),-1) : todayISO();
-  c.revStages = {};
-  addToErrorLog(subj, chId);
-  save(); toast('No worries — rescheduled for extra practice, and added to your Error Log 🔁'); render();
+function stageDayLabel(stage){
+  const o = revisionOffsets();
+  return 'Day ' + (o[stage-1] ?? o[o.length-1]);
 }
-function addToErrorLog(subj, chId){
-  const c = state.chapters[subj].find(x=>x.id===chId);
-  if(!c) return;
-  let e = state.errorLog.find(x=>x.subject===subj && x.chapterId===chId);
-  if(!e){ e = {id:uid(), subject:subj, chapterId:chId, chapterName:c.name, addedDate:todayISO(), cleanStreak:0, nextRetryDate:todayISO()}; state.errorLog.push(e); }
-  else { e.cleanStreak = 0; e.nextRetryDate = addDays(todayISO(),1); }
-}
-function errorLogDue(){
-  const today = todayISO();
-  return state.errorLog.filter(e=>e.nextRetryDate<=today).sort((a,b)=>a.nextRetryDate.localeCompare(b.nextRetryDate));
-}
-function errorLogMarkClean(id){
-  const e = state.errorLog.find(x=>x.id===id);
-  if(!e) return;
-  e.cleanStreak = (e.cleanStreak||0)+1;
-  if(e.cleanStreak>=2){ state.errorLog = state.errorLog.filter(x=>x.id!==id); toast('Cleared from Error Log — nicely done 🎉'); }
-  else { e.nextRetryDate = addDays(todayISO(),1); toast('Nice — one more clean pass tomorrow and it graduates'); }
-  save(); render();
-}
-function errorLogMarkShaky(id){
-  const e = state.errorLog.find(x=>x.id===id);
-  if(!e) return;
-  e.cleanStreak = 0;
-  e.nextRetryDate = addDays(todayISO(),1);
-  save(); toast('Back on the 24h retry list'); render();
+/* Recomputes current_stage + next_review_date for one chapter from its revisionStartDate
+   and revStages log. Call this any time revisionStartDate is set or a stage is marked done —
+   it's cheap, so also called defensively inside revisionsDue()/revisionScheduleInRange() to
+   self-heal any chapter whose cached fields drifted (e.g. imported backups, manual edits). */
+function refreshRevisionSchedule(c, s){
+  const offsets = revisionOffsets(s);
+  if(!c.revisionStartDate){ c.currentStage = 0; c.nextReviewDate = null; return; }
+  if(!c.revStages) c.revStages = {};
+  let stage = 1;
+  while(stage<=offsets.length && c.revStages[stage]) stage++;
+  if(stage>offsets.length){ c.currentStage = offsets.length; c.nextReviewDate = null; return; } // mastered — all cycles in the schedule done
+  c.currentStage = stage;
+  c.nextReviewDate = addDays(c.revisionStartDate, offsets[stage-1]);
 }
 function revisionsDue(){
   const due=[]; const today=todayISO();
   SUBJECT_KEYS.forEach(k=>{
     state.chapters[k].forEach(c=>{
       if(!c.revisionStartDate) return; // clock hasn't started — no session logged for this chapter yet
-      if(!c.revStages) c.revStages = {};
-      for(let stage=1; stage<=200; stage++){ // 200 stages ≈ years ahead — plenty, and offsets only grow, so safe to break early
-        if(c.revStages[stage]) continue; // already done — check the next stage too, in case it's also due
-        const dueDate = addDays(c.revisionStartDate, revisionOffsetForStage(stage));
-        if(dueDate<=today){ due.push({subject:k, chapter:c, stage, dueDate}); }
-        else break; // offsets are monotonically increasing, so nothing further can be due yet
+      refreshRevisionSchedule(c);
+      if(c.nextReviewDate && c.nextReviewDate<=today){
+        due.push({subject:k, chapter:c, stage:c.currentStage, dueDate:c.nextReviewDate});
       }
     });
   });
@@ -939,12 +935,13 @@ function revisionScheduleInRange(startISO, days){
   const endISO = addDays(startISO, days);
   const byDate = {};
   for(let i=0;i<days;i++){ byDate[addDays(startISO,i)] = []; }
+  const offsets = revisionOffsets();
   SUBJECT_KEYS.forEach(k=>{
     state.chapters[k].forEach(c=>{
       if(!c.revisionStartDate) return;
-      for(let stage=1; stage<=200; stage++){
-        const dueDate = addDays(c.revisionStartDate, revisionOffsetForStage(stage));
-        if(dueDate>=endISO) break; // monotonically increasing — nothing later in range either
+      for(let stage=1; stage<=offsets.length; stage++){
+        const dueDate = addDays(c.revisionStartDate, offsets[stage-1]);
+        if(dueDate>=endISO) break; // offsets only grow — nothing later in range either
         if(dueDate>=startISO && byDate[dueDate]){
           byDate[dueDate].push({subject:k, chapter:c, stage, done: !!(c.revStages&&c.revStages[stage])});
         }
@@ -1093,6 +1090,7 @@ function pageToday(name){
   const todaymap = sessionsByDate();
   const todayMin = todaymap[todayISO()]||0;
   const todaySessions = state.sessions.filter(s=>s.start.slice(0,10)===todayISO());
+  const inprog = inProgressSessions();
   const keys = activeSubjectKeys();
   const ss = syllabusStats(keys);
   const overallPct = ss.total? Math.round(100*ss.done/ss.total) : 0;
@@ -1104,9 +1102,9 @@ function pageToday(name){
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
       <button class="btn ghost" onclick="openQuickComplete()">⚡ Log past session</button>
-      <button class="btn" onclick="go('session')" style="position:relative;">+ Start session
-        <span class="mini-badge" style="background:${pendingHWQuestions()>0?'#D64545':'#1D9C63'};" title="Pending homework questions">${pendingHWQuestions()}</span>
-      </button>
+      <button class="btn" onclick="go('session')">+ Start session</button>
+      ${hwDueOrOverdue().length? `<button class="hw-bell-btn" onclick="openHWNotifications()" title="${hwDueOrOverdue().length} homework item${hwDueOrOverdue().length===1?'':'s'} pending — tap to view">📝<span class="start-session-badge">${hwDueOrOverdue().length}</span></button>`:''}
+      ${revisionsDue().length? `<button class="hw-bell-btn" onclick="openRevNotifications()" title="${revisionsDue().length} revision${revisionsDue().length===1?'':'s'} pending — tap to view">🔁<span class="start-session-badge">${revisionsDue().length}</span></button>`:''}
     </div>
   </div>
 
@@ -1144,18 +1142,17 @@ function pageToday(name){
     </div>
   </div>
 
-  <div class="home-chip-row">
-    <div class="card hw-pending-chip" onclick="showPendingHWPopup()">
-      <div style="font-size:19px;flex-shrink:0;">📝</div>
-      <div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--txt);">Homework</div>
-      <div class="hw-pending-badge" style="background:${pendingHWQuestions()>0?'#D64545':'#1D9C63'};">${pendingHWQuestions()}</div>
-    </div>
-    <div class="card hw-pending-chip" onclick="go('revisions')">
-      <div style="font-size:19px;flex-shrink:0;">🔁</div>
-      <div style="flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--txt);">Revision</div>
-      <div class="hw-pending-badge" style="background:${revisionsDue().length>0?'#D64545':'#1D9C63'};">${revisionsDue().length}</div>
-    </div>
-  </div>
+  ${inprog.length? `
+  <div class="section-title">Resume <span class="hint">${inprog.length} unfinished session${inprog.length===1?'':'s'}</span></div>
+  <div class="card">
+    ${inprog.map(s=>`
+      <div class="list-row">
+        <div style="flex:1"><b>${SUBJECTS[s.subject].name}</b> · ${s.chapter||''}<br><span class="hint" style="color:var(--sub);font-size:12.5px">${ACTIVITIES.find(a=>a.id===s.activity).label} · started ${new Date(s.start).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span></div>
+        <button class="btn sm" onclick="resumeSession('${s.id}')">Resume</button>
+      </div>`).join('')}
+  </div>` : ''}
+
+  ${todoCardHTML()}
 
   ${wellnessCardHTML()}
 
@@ -1488,17 +1485,24 @@ function endSession(status){
   const elapsed = computeElapsedSec(d);
   const durationMin = Math.round(elapsed/60) || 1;
   state.sessions.push({id:d.id, subject:d.subject, chapter:d.chapter, activity:d.activity, mode:d.mode, topic:d.topic||'', start:d.start, end:new Date().toISOString(), durationMin, status});
+  let revisionSuggestion = null;
   if(status==='complete'){
+    const ch = state.chapters[d.subject]?.find(c=>c.name===d.chapter);
+    const clockJustStarted = ch && !ch.revisionStartDate; // about to be set by markStageFromActivity below
     markStageFromActivity(d.subject, d.chapter, d.activity, d.start.slice(0,10));
+    if(clockJustStarted && ch && ch.nextReviewDate){
+      revisionSuggestion = `📌 Revision suggested for "${ch.name}" on ${fmtDate(ch.nextReviewDate)} — it'll show up in Revision Queue and on the home screen when due.`;
+    }
     if(d.revisionLink){
       const c = state.chapters[d.revisionLink.subject].find(x=>x.id===d.revisionLink.chapterId);
-      if(c){ if(!c.revStages) c.revStages={}; c.revStages[d.revisionLink.stage] = todayISO(); }
+      if(c){ if(!c.revStages) c.revStages={}; c.revStages[d.revisionLink.stage] = todayISO(); refreshRevisionSchedule(c); }
     }
   }
   sessionDraft = null;
   state.activeSession = null;
   save();
-  toast(status==='complete'? (d.revisionLink? 'Revision timer complete — marked done ✔️' : 'Session completed 🎉') : 'Saved as in progress');
+  if(revisionSuggestion){ toast(revisionSuggestion, 4500); }
+  else{ toast(status==='complete'? (d.revisionLink? 'Revision timer complete — marked done ✔️' : 'Session completed 🎉') : 'Saved as in progress'); }
   render();
 }
 function markStageFromActivity(subject, chapterName, activityId, sessionDate){
@@ -1513,6 +1517,7 @@ function markStageFromActivity(subject, chapterName, activityId, sessionDate){
   // whichever comes first — not only once every stage checkbox is ticked. Backdates correctly
   // when logged via Quick-complete for a past date.
   if(!ch.revisionStartDate) ch.revisionStartDate = sessionDate || todayISO();
+  refreshRevisionSchedule(ch);
 }
 function cancelSession(){
   if(!confirm('Discard this session? The time won\'t be logged.')) return;
@@ -1817,6 +1822,7 @@ function syncFirstRead(c){
   c.firstRead = chapterStagePct(c)===100;
   if(c.firstRead && !c.firstReadDate) c.firstReadDate = todayISO();
   if(c.firstRead && !c.revisionStartDate) c.revisionStartDate = c.firstReadDate; // fallback for chapters ticked complete manually, never logged as a session
+  refreshRevisionSchedule(c);
   return c.firstRead && !wasFirstRead; // true only on the exact transition to complete
 }
 function toggleStage(subjKey, id, stageId){
@@ -1939,7 +1945,8 @@ function showPendingHWPopup(){
           <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
           <div style="flex:1;min-width:0;">
             <b>${SUBJECTS[e.subject].name}</b>${e.chapter? ' · '+e.chapter:''}
-            <br><span style="color:var(--sub);font-size:12.5px;">${comp}/${total} done · ${left} left</span>
+            ${e.topic? `<br><span class="hw-topic-small">${e.topic}</span>`:''}
+            <br><span style="color:var(--sub);font-size:12.5px;">${comp}/${total} done · ${left} left</span>${e.questionRange? ` <span class="hw-qcount">${e.questionRange}</span>`:''}
           </div>
           <button class="btn ghost sm" onclick="hwMarkDone('${e.id}');showPendingHWPopup();">Mark done</button>
         </div>`;
@@ -2059,14 +2066,21 @@ function pageHWLog(){
   return h;
 }
 function hwFormHTML(){
+  const firstSub = activeSubjectKeys()[0];
   return `<div class="card" style="margin-bottom:14px;">
     <div class="two-col">
       <div class="field"><label class="field-label">Date logged</label><input type="date" id="hwfDate" value="${todayISO()}"></div>
-      <div class="field"><label class="field-label">Subject</label><select id="hwfSubject">${activeSubjectKeys().map(k=>`<option value="${k}">${SUBJECTS[k].name}</option>`).join('')}</select></div>
+      <div class="field"><label class="field-label">Subject</label><select id="hwfSubject" onchange="onHWSubjectChange()">${activeSubjectKeys().map(k=>`<option value="${k}">${SUBJECTS[k].name}</option>`).join('')}</select></div>
     </div>
-    <div class="field"><label class="field-label">Topic / chapter</label><textarea class="topic-textarea" id="hwfTopic" placeholder="e.g. AS 10 — PPE" oninput="autoGrow(this)"></textarea></div>
+    <div class="field"><label class="field-label">Chapter <span class="hint">optional — pick from your syllabus</span></label>
+      <select id="hwfChapter" onchange="onHWChapterChange()">
+        <option value="">— choose a chapter (optional) —</option>
+        ${(state.chapters[firstSub]||[]).map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label class="field-label">Topic</label><textarea class="topic-textarea" id="hwfTopic" placeholder="e.g. AS 10 — PPE" oninput="autoGrow(this)"></textarea></div>
     <div class="field"><label class="field-label">Due date <span class="hint">optional — get reminded if it's not done by then</span></label><input type="date" id="hwfDue" min="${todayISO()}"></div>
-    <div class="field"><label class="field-label">Question range</label><input type="text" id="hwfQR" placeholder="e.g. Q1–5, Q7"></div>
+    <div class="field"><label class="field-label">Question range</label><input type="text" id="hwfQR" class="hwf-qr-input" placeholder="e.g. Q1–5, Q7"></div>
     <div class="two-col">
       <div class="field"><label class="field-label">Total questions</label><input type="number" id="hwfTotal" min="0" placeholder="0"></div>
       <div class="field"><label class="field-label">Completed</label><input type="number" id="hwfComp" min="0" placeholder="0"></div>
@@ -2075,17 +2089,33 @@ function hwFormHTML(){
     <button class="btn" style="width:100%;" onclick="hwSubmit()">Save homework entry</button>
   </div>`;
 }
+/* Chapter select is scoped to whichever subject is picked, and re-populates in place (no full
+   re-render) so nothing the student already typed elsewhere in the form gets wiped. */
+function onHWSubjectChange(){
+  const sub = document.getElementById('hwfSubject').value;
+  const sel = document.getElementById('hwfChapter');
+  if(!sel) return;
+  const chs = state.chapters[sub]||[];
+  sel.innerHTML = `<option value="">— choose a chapter (optional) —</option>` + chs.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.name}</option>`).join('');
+}
+function onHWChapterChange(){
+  const sel = document.getElementById('hwfChapter');
+  const topic = document.getElementById('hwfTopic');
+  if(sel && sel.value && topic && !topic.value.trim()){ topic.value = sel.value; autoGrow(topic); }
+}
 function hwSubmit(){
   const topic = document.getElementById('hwfTopic').value.trim();
   if(!topic){ toast('Add a topic first'); return; }
   const total = parseInt(document.getElementById('hwfTotal').value)||0;
   const comp = parseInt(document.getElementById('hwfComp').value)||0;
   const loggedDate = document.getElementById('hwfDate').value || todayISO();
+  const chapterEl = document.getElementById('hwfChapter');
   state.homework.push({
     id: uid(),
     date: loggedDate,
     dueDate: document.getElementById('hwfDue').value || null,
     subject: document.getElementById('hwfSubject').value,
+    chapter: chapterEl && chapterEl.value ? chapterEl.value : null,
     topic,
     questionRange: document.getElementById('hwfQR').value.trim(),
     totalQuestions: total,
@@ -2121,7 +2151,7 @@ function hwEntryCardHTML(e){
     </div>
     <div class="hw-meta">
       <span class="hw-subj-tag" style="background:var(--violet-soft);color:var(--violet-deep);">${e.subject}</span>
-      ${e.questionRange? `<span>${e.questionRange}</span>`:''}
+      ${e.questionRange? `<span class="hw-qcount">${e.questionRange}</span>`:''}
       ${total>0? `<span>${comp}/${total} Qs</span>`:''}
     </div>
     ${total>0? `<div class="hw-prog-wrap"><div class="hw-prog-bar"><div class="hw-prog-fill" style="width:${pct}%;background:${status==='done'?'#1D9C63':status==='in-progress'?'#9C6B00':'#D64545'}"></div></div><div class="hw-prog-text">${pct}%</div></div>`:''}
@@ -2222,91 +2252,109 @@ function revisionCalendarHTML(){
     }).join('')}
   </div>`;
 }
-function revisionModeVisualHTML(){
-  const strat = state.settings.revisionStrategy;
-  if(strat==='BOX') return boxSystemGridHTML();
-  if(strat==='SPRINT') return sprintBannerHTML() + revisionCalendarHTML();
-  return revisionCalendarHTML();
-}
-function boxSystemGridHTML(){
-  const boxes = [[],[],[],[]];
+let revSubjFilter = "All";
+let revView = "due"; // due | calendar
+function revSetSubj(s){ revSubjFilter=s; render(); }
+function revSetView(v){ revView=v; render(); }
+/* Everything scheduled that isn't due yet — powers the "Coming up" section, same shape as revisionsDue(). */
+function upcomingRevisions(days){
+  const today = todayISO(); const end = addDays(today, days);
+  const list = [];
   SUBJECT_KEYS.forEach(k=>{
     state.chapters[k].forEach(c=>{
       if(!c.revisionStartDate) return;
-      const completed = Object.keys(c.revStages||{}).length;
-      boxes[Math.min(completed,3)].push({subject:k, name:c.name});
+      refreshRevisionSchedule(c);
+      if(c.nextReviewDate && c.nextReviewDate>today && c.nextReviewDate<end){
+        list.push({subject:k, chapter:c, stage:c.currentStage, dueDate:c.nextReviewDate});
+      }
     });
   });
-  const meta = [
-    {label:'Box 1', sub:'every 2 days', color:'#D64545'},
-    {label:'Box 2', sub:'every 4 days', color:'#E08A3C'},
-    {label:'Box 3', sub:'every 7 days', color:'#3C8FE0'},
-    {label:'Box 4', sub:'archived till exam week', color:'#28A87D'}
-  ];
-  return `
-  <div class="section-title">📦 Box System <span class="hint">climb up on success — any miss drops straight back to Box 1</span></div>
-  <div class="box-grid">
-    ${boxes.map((items,i)=>`
-      <div class="box-col" style="border-top-color:${meta[i].color};">
-        <div class="box-col-hd" style="color:${meta[i].color};">${meta[i].label}</div>
-        <div class="box-col-count">${items.length}</div>
-        <div class="box-col-sub">${meta[i].sub}</div>
-      </div>`).join('')}
-  </div>`;
+  return list.sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
 }
-function sprintBannerHTML(){
-  const d = daysToExam();
-  return `
-  <div class="section-title">🔥 Exam Sprint mode active</div>
-  <div class="sprint-banner">${d===null? 'Set your exam date on Home to see your countdown.' : `<b>${d} day${d===1?'':'s'}</b> to your exam — high-density loop, every revision counts now.`}</div>`;
-}
-function errorLogHTML(){
-  const due = errorLogDue();
-  if(!state.errorLog.length) return '';
-  return `
-  <div class="section-title">⚠️ Error Log <span class="hint">missed revisions — retested every 24h until clean twice in a row</span></div>
-  <div class="card">
-    ${due.length? due.map(e=>`
-      <div class="list-row">
-        <div style="width:8px;height:8px;border-radius:50%;background:${SUBJECTS[e.subject].color};"></div>
-        <div style="flex:1;"><b>${e.chapterName}</b><br><span style="color:var(--sub);font-size:12.5px;">${SUBJECTS[e.subject].name} · clean streak ${e.cleanStreak}/2</span></div>
-        <button class="btn ghost sm" style="color:#D64545;" onclick="errorLogMarkShaky('${e.id}')">Still shaky</button>
-        <button class="btn sm" onclick="errorLogMarkClean('${e.id}')">✓ Clean</button>
-      </div>`).join('') : `<div class="empty" style="padding:16px 0;">${state.errorLog.length} item${state.errorLog.length===1?'':'s'} on the list, next retry not due yet.</div>`}
+/* Card styled to match hwEntryCardHTML — same visual language across Homework Log and Revision Queue. */
+function revCardHTML(r){
+  const today = todayISO();
+  const overdue = r.dueDate<today, dueToday = r.dueDate===today;
+  const statusCls = overdue? 'pending' : dueToday? 'in-progress' : 'done';
+  const statusLabel = overdue? 'Overdue' : dueToday? 'Due today' : 'Upcoming';
+  return `<div class="hw-card">
+    <div class="hw-card-top">
+      <div class="hw-subj-dot" style="background:${SUBJECTS[r.subject].color}"></div>
+      <div class="hw-topic">${r.chapter.name}</div>
+      <span class="status-chip ${statusCls}">${statusLabel}</span>
+    </div>
+    <div class="hw-meta">
+      <span class="hw-subj-tag" style="background:var(--violet-soft);color:var(--violet-deep);">${r.subject}</span>
+      <span class="hw-qcount">${stageDayLabel(r.stage)} revision</span>
+    </div>
+    <div style="font-size:11px;color:var(--sub);margin-bottom:6px;">
+      Lecture logged ${fmtDate(r.chapter.firstReadDate||r.chapter.revisionStartDate)} · <span style="color:${overdue?'#D64545':dueToday?'var(--violet-deep)':'var(--sub)'};font-weight:700;">${overdue?'overdue since':'due'} ${fmtDate(r.dueDate)}</span>
+    </div>
+    <div class="hw-actions">
+      <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage})">✓ Mark done</button>
+      <button class="btn sm ghost" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})">▶ Start timer</button>
+    </div>
   </div>`;
 }
 function pageRevisions(){
-  const due = revisionsDue();
+  const filt = r=> revSubjFilter==='All' || r.subject===revSubjFilter;
+  const dueAll = revisionsDue().filter(filt);
+  const overdue = dueAll.filter(r=>r.dueDate<todayISO());
+  const dueToday = dueAll.filter(r=>r.dueDate===todayISO());
+  const upcoming = upcomingRevisions(7).filter(filt);
   const yest = reviewYesterday();
-  return `
-  <div class="topbar"><div class="greet"><h1>Revision Queue</h1><p>Quick "review yesterday" and your spaced chapter revisions.</p></div></div>
 
-  ${revisionModeVisualHTML()}
+  let h = `
+  <div class="topbar"><div class="greet"><h1>Revision Queue</h1><p>Spaced revisions — ${revisionScheduleLabel()} — auto-scheduled the moment you log a chapter.</p></div></div>
 
-  <div class="section-title">Review yesterday <span class="hint">fades after 2 days</span></div>
+  <div class="hw-top-strip">
+    <div class="hw-top-cell card" style="background:#FFEAEA;"><div class="hw-top-val" style="color:#D64545;">${overdue.length}</div><div class="hw-top-label" style="color:#D64545;">Overdue</div></div>
+    <div class="hw-top-cell card" style="background:var(--violet-soft);"><div class="hw-top-val" style="color:var(--violet-deep);">${dueToday.length}</div><div class="hw-top-label" style="color:var(--violet-deep);">Due today</div></div>
+    <div class="hw-top-cell card"><div class="hw-top-val">${upcoming.length}</div><div class="hw-top-label">Next 7 days</div></div>
+  </div>
+
+  <div class="chiprow" style="margin-bottom:6px;">
+    <span class="chip ${revView==='due'?'active':''}" onclick="revSetView('due')">📋 Due</span>
+    <span class="chip ${revView==='calendar'?'active':''}" onclick="revSetView('calendar')">🗓️ Calendar</span>
+  </div>
+  <div class="chiprow">
+    ${["All",...activeSubjectKeys()].map(s=>`<span class="chip ${revSubjFilter===s?'active':''}" onclick="revSetSubj('${s}')">${s}</span>`).join('')}
+  </div>
+  `;
+
+  if(revView==='calendar'){
+    h += revisionCalendarHTML();
+  }
+
+  h += `
+  <div class="section-title" style="margin-top:16px;">Review yesterday <span class="hint">fades after 2 days</span></div>
   <div class="card">
     ${yest.length? yest.map(sessionRowHTML).join('') : `<div class="empty" style="padding:24px 0;">Nothing to review — anything you study gets a nudge here the next day.</div>`}
   </div>
-  <div class="section-title">Revisions due <span class="hint">${due.length} due / overdue</span></div>
-  <div class="card">
-    ${due.length? due.map(r=>`
-      <div class="list-row">
-        <div style="width:8px;height:8px;border-radius:50%;background:${SUBJECTS[r.subject].color};"></div>
-        <div style="flex:1;"><b>${r.chapter.name}</b><br><span style="color:var(--sub);font-size:12.5px;">${SUBJECTS[r.subject].name} · Revision ${r.stage} · due ${fmtDate(r.dueDate)}</span></div>
-        <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})">▶ Start timer</button>
-        <button class="btn ghost sm" style="color:#D64545;" onclick="reviseGotWrong('${r.subject}','${r.chapter.id}')">✗ Got it wrong</button>
-        <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage})">✓ Mark done</button>
-      </div>`).join('') : `<div class="empty" style="padding:24px 0;">No revisions due. Finish first-reading a chapter (Syllabus) to start its revision schedule (${revisionScheduleLabel()}).</div>`}
-  </div>
+  `;
 
-  ${errorLogHTML()}`;
+  if(overdue.length){
+    h += `<div class="section-title" style="margin-top:18px;color:#D64545;">🔴 Overdue <span class="hint">${overdue.length}</span></div>${overdue.map(revCardHTML).join('')}`;
+  }
+  if(dueToday.length){
+    h += `<div class="section-title" style="margin-top:18px;">🟣 Due today <span class="hint">${dueToday.length}</span></div>${dueToday.map(revCardHTML).join('')}`;
+  }
+  if(!overdue.length && !dueToday.length){
+    h += `<div class="empty" style="padding:24px 0;"><div class="big">🎉</div><h3>Nothing due right now</h3><p>Finish first-reading a chapter (Syllabus) to start its ${revisionScheduleLabel()} schedule.</p></div>`;
+  }
+  if(upcoming.length){
+    h += `<div class="section-title" style="margin-top:18px;">🔜 Coming up <span class="hint">next 7 days</span></div>${upcoming.map(revCardHTML).join('')}`;
+  }
+  return h;
 }
 function completeRevision(subj, chId, stage){
   const c = state.chapters[subj].find(x=>x.id===chId);
+  if(!c.revStages) c.revStages = {};
   c.revStages[stage] = todayISO();
+  refreshRevisionSchedule(c);
   save(); toast('Revision logged'); render();
 }
-/* ---------- SPACED-REPETITION AUTO REMINDER (1-3-7-14 day method) ---------- */
+/* ---------- SPACED-REPETITION AUTO REMINDER (day 1 → 3 → 7 → 30 method, configurable in Settings) ---------- */
 /* ---------- HOMEWORK DUE-DATE REMINDER ---------- */
 function hwDueOrOverdue(){
   const today = todayISO();
@@ -2318,44 +2366,102 @@ function hwUpcoming(){
   return state.homework.filter(e=> e.dueDate && hwStatus(e)!=='done' && e.dueDate>today)
     .sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
 }
-/* Persistent To-Do card on the Today page — the always-visible version of the daily popup,
-   so due items don't disappear once you've dismissed the reminder for the day. */
+/* Persistent Homework/Revision split panel on the Today page — replaces the old always-open
+   "In progress" tile. Two halves side-by-side (stacked on mobile): homework due on the left,
+   revision reminders on the right. Each half is a single "Homework due" / "Revision due" BUTTON
+   showing just the count (+ an urgent look when something is overdue or due today) — tap it to
+   expand the full per-item detail, with a mark-done action right there. */
+let hwPanelExpanded = false;
+let revPanelExpanded = false;
+function toggleHWPanel(){ hwPanelExpanded = !hwPanelExpanded; render(); }
+function toggleRevPanel(){ revPanelExpanded = !revPanelExpanded; render(); }
+/* Tapping the 🔔 bell next to Start session should behave like tapping an iOS notification —
+   jump straight into the expanded detail, not just toggle a collapsed pill. */
+function openHWNotifications(){
+  hwPanelExpanded = true;
+  render();
+  setTimeout(()=> document.querySelector('.hw-rev-split')?.scrollIntoView({behavior:'smooth', block:'center'}), 60);
+}
+/* Tapping the 🔁 bell next to Start session jumps straight into the expanded revision detail. */
+function openRevNotifications(){
+  revPanelExpanded = true;
+  render();
+  setTimeout(()=> document.querySelector('.hw-rev-split')?.scrollIntoView({behavior:'smooth', block:'center'}), 60);
+}
 function todoCardHTML(){
   const dueRev = revisionsDue();
   const dueHW = hwDueOrOverdue();
-  const upcomingHW = hwUpcoming().slice(0,3);
-  const totalDue = dueRev.length + dueHW.length;
+  const hwUrgent = dueHW.some(e=>e.dueDate && e.dueDate<=todayISO());
+  const revUrgent = dueRev.some(r=>r.dueDate && r.dueDate<=todayISO());
+
+  const hwCollapsed = !hwPanelExpanded && dueHW.length>0;
+  const revCollapsed = !revPanelExpanded && dueRev.length>0;
+
+  const hwRowHTML = (e)=>{
+    const overdue = e.dueDate && e.dueDate<todayISO();
+    const dueToday = e.dueDate===todayISO();
+    return `
+    <div class="hw-rev-row ${overdue||dueToday?'urgent':''}">
+      <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color};margin-top:3px;"></span>
+      <div style="flex:1;min-width:0;">
+        <div class="hw-meta-small">${e.subject}${overdue? `<span class="urgent-tag">OVERDUE</span>` : dueToday? `<span class="urgent-tag">DUE TODAY</span>`:''}</div>
+        <div class="hw-topic-small">${e.topic}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;">
+          <span style="font-size:11px;color:${overdue?'#D64545':'var(--sub)'};font-weight:${overdue?'700':'400'};">${e.dueDate? (overdue?'Overdue since ':'Due ')+fmtDate(e.dueDate) : 'No due date'}</span>
+          ${e.questionRange? `<span class="hw-qcount">${e.questionRange}</span>` : (e.totalQuestions? `<span class="hw-qcount">${e.completedQuestions||0}/${e.totalQuestions} Qs</span>` : '')}
+        </div>
+      </div>
+      <button class="btn sm" onclick="hwMarkDone('${e.id}');render();" title="Mark done">✓</button>
+    </div>`;
+  };
+
+  const revRowHTML = (r)=>{
+    const overdue = r.dueDate && r.dueDate<todayISO();
+    const dueToday = r.dueDate===todayISO();
+    return `
+    <div class="hw-rev-row ${overdue||dueToday?'urgent':''}">
+      <span class="hw-subj-dot" style="background:${SUBJECTS[r.subject].color};margin-top:3px;"></span>
+      <div style="flex:1;min-width:0;">
+        <div class="hw-meta-small">${r.subject}${overdue? `<span class="urgent-tag">OVERDUE</span>` : dueToday? `<span class="urgent-tag">DUE TODAY</span>`:''}</div>
+        <div style="font-size:12.5px;font-weight:700;">${r.chapter.name}</div>
+        <div style="font-size:11px;color:var(--sub);margin-top:1px;">Lecture watched ${r.chapter.firstReadDate? fmtDate(r.chapter.firstReadDate) : fmtDate(r.chapter.revisionStartDate)}</div>
+        <div style="font-size:11px;color:${overdue?'#D64545':'var(--sub)'};margin-top:2px;">${stageDayLabel(r.stage)} revision · ${overdue?'overdue since':'due'} ${fmtDate(r.dueDate)}</div>
+      </div>
+      <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})" title="Start timer">▶</button>
+      <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});render();" title="Mark done">✓</button>
+    </div>`;
+  };
+
+  const hwBody = dueHW.length===0
+    ? `<div style="font-size:12px;color:var(--sub);padding:6px 0;">${state.homework.length===0? 'No homework logged yet.' : 'Nothing due — nice.'}</div>`
+    : hwCollapsed
+      ? `<button class="notif-collapsed ${hwUrgent?'urgent':''}" onclick="toggleHWPanel()">
+           <span class="notif-collapsed-count">${dueHW.length}</span>
+           <span>homework item${dueHW.length===1?'':'s'} pending${hwUrgent?' — urgent':''} · tap for details</span>
+         </button>`
+      : dueHW.map(hwRowHTML).join('') + `<div class="notif-collapsed" onclick="toggleHWPanel()" style="text-align:center;background:none;border:none;">▲ collapse</div>`;
+
+  const revBody = dueRev.length===0
+    ? `<div style="font-size:12px;color:var(--sub);padding:6px 0;">Nothing due for revision.</div>`
+    : revCollapsed
+      ? `<button class="notif-collapsed ${revUrgent?'urgent':''}" onclick="toggleRevPanel()">
+           <span class="notif-collapsed-count">${dueRev.length}</span>
+           <span>revision${dueRev.length===1?'':'s'} pending${revUrgent?' — urgent':''} · tap for details</span>
+         </button>`
+      : dueRev.map(revRowHTML).join('') + `<div class="notif-collapsed" onclick="toggleRevPanel()" style="text-align:center;background:none;border:none;">▲ collapse</div>`;
+
   return `
-  <div class="todo-card">
-    <div class="todo-hd">📝 Homework Due Today <span class="hint">${totalDue} pending</span></div>
-    ${dueHW.map(e=>`
-      <div class="todo-row">
-        <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color}"></span>
-        <div style="flex:1;min-width:0;"><b>${e.topic}</b><div style="font-size:11px;color:${e.dueDate<todayISO()?'#D64545':'var(--sub)'};font-weight:${e.dueDate<todayISO()?'700':'400'};">${e.dueDate<todayISO()?'Overdue since':'Due'} ${fmtDate(e.dueDate)} · homework</div></div>
-        <button class="btn sm" onclick="hwMarkDone('${e.id}');render();">✓</button>
-      </div>`).join('')}
-    ${dueRev.map(r=>`
-      <div class="todo-row">
-        <span class="hw-subj-dot" style="background:${SUBJECTS[r.subject].color}"></span>
-        <div style="flex:1;min-width:0;"><b>${r.chapter.name}</b><div style="font-size:11px;color:var(--sub);">Revision ${r.stage} due ${fmtDate(r.dueDate)}</div></div>
-        <button class="btn ghost sm" onclick="startRevisionTimer('${r.subject}','${r.chapter.id}',${r.stage})" title="Start revision timer">▶</button>
-        <button class="btn ghost sm" style="color:#D64545;" onclick="reviseGotWrong('${r.subject}','${r.chapter.id}')" title="Got it wrong">✗</button>
-        <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});render();" title="Mark done">✓</button>
-      </div>`).join('')}
-    ${upcomingHW.length? `
-      <div class="todo-upcoming-hd">Coming up</div>
-      ${upcomingHW.map(e=>`
-        <div class="todo-row">
-          <span class="hw-subj-dot" style="background:${SUBJECTS[e.subject].color};opacity:.5;"></span>
-          <div style="flex:1;min-width:0;color:var(--sub);"><b style="color:var(--ink);">${e.topic}</b><div style="font-size:11px;">Due ${fmtDate(e.dueDate)}</div></div>
-          <button class="btn sm ghost" onclick="addHWToPhone('${e.id}')">📅 Add to phone</button>
-        </div>`).join('')}
-    ` : ''}
-    ${totalDue===0? `<div style="font-size:12.5px;color:var(--sub);padding:6px 0;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <span>${state.homework.length===0? 'No homework logged yet.' : 'Nothing due right now — nice.'}</span>
-      ${state.homework.length===0? `<button class="btn ghost sm" onclick="go('hwlog')">+ Add homework</button>` : ''}
-    </div>` : ''}
-  </div>`;
+  <div class="hw-rev-split">
+    <div class="hw-rev-col">
+      <div class="hw-rev-hd" ${dueHW.length? `onclick="toggleHWPanel()" style="cursor:pointer;"`:''}>📝 Homework due ${dueHW.length? `<span class="notif-badge ${hwUrgent?'urgent':''}">${dueHW.length}</span>`:''}</div>
+      ${hwBody}
+    </div>
+    <div class="hw-rev-col">
+      <div class="hw-rev-hd" ${dueRev.length? `onclick="toggleRevPanel()" style="cursor:pointer;"`:''}>🔁 Revision reminders ${dueRev.length? `<span class="notif-badge">${dueRev.length}</span>`:''}</div>
+      ${revBody}
+    </div>
+  </div>
+  <div style="text-align:right;margin:-8px 0 16px;"><a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:12.5px;" onclick="go('revisions')">🗓️ Open revision calendar →</a></div>`;
 }
 /* "Add to phone" — generates a standard .ics calendar file for the homework's due date.
    Opening it prompts the phone's Calendar/Reminders app to add an event — works fully
@@ -2409,7 +2515,7 @@ function checkDailyReminders(force){
         <div style="font-size:11px;font-weight:800;color:${SUBJECTS[subj].color};text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px;">${SUBJECTS[subj].name}</div>
         ${groupedRev[subj].map(r=>`
           <div class="list-row" style="padding:8px 0;">
-            <div style="flex:1;"><b style="font-size:13px;">${r.chapter.name}</b><br><span style="color:var(--sub);font-size:11.5px;">Revision ${r.stage} (day ${revisionOffsetForStage(r.stage)}) · due ${fmtDate(r.dueDate)}</span></div>
+            <div style="flex:1;"><b style="font-size:13px;">${r.chapter.name}</b><br><span style="color:var(--sub);font-size:11.5px;">${stageDayLabel(r.stage)} revision · due ${fmtDate(r.dueDate)}</span></div>
             <button class="btn sm" onclick="completeRevision('${r.subject}','${r.chapter.id}',${r.stage});checkDailyReminders(true);">✓ Done</button>
           </div>`).join('')}
       `).join('')}
@@ -2532,10 +2638,6 @@ function saveFinalRevSettings(){
 
 /* ---------- FLASHPOINTS ---------- */
 let fpFilter = 'All'; let fpSearch='';
-let fpRecallMode = false;
-let revealedFP = new Set();
-function toggleRecallMode(){ fpRecallMode = !fpRecallMode; revealedFP = new Set(); render(); }
-function revealFP(id){ revealedFP.add(id); render(); }
 function pageFlashpoints(){
   let items = state.flashpoints;
   if(fpFilter==='starred') items = items.filter(f=>f.starred);
@@ -2543,12 +2645,10 @@ function pageFlashpoints(){
   if(fpSearch) items = items.filter(f=>f.text.toLowerCase().includes(fpSearch.toLowerCase()));
   return `
   <div class="topbar"><div class="greet"><h1>Flashpoints</h1><p>Key points, formulas & traps — grouped by chapter. Star what you want to revisit.</p></div></div>
-  <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-    <button class="btn ${fpRecallMode?'':'ghost'} sm" onclick="toggleRecallMode()">🧠 Recall mode ${fpRecallMode?'ON':'OFF'}</button>
+  <div style="display:flex;gap:10px;margin-bottom:14px;">
     <button class="btn ghost sm" onclick="exportFlashpoints()">⬇ Export</button>
     <button class="btn sm" onclick="openAddFlashpoint()">+ Add</button>
   </div>
-  ${fpRecallMode? `<p style="color:var(--sub);font-size:12px;margin:-8px 0 12px;">Recall mode: points stay blurred until you've written your own answer down first — passive re-reading doesn't build recall.</p>`:''}
   <input type="text" placeholder="Search all points..." value="${fpSearch}" oninput="fpSearch=this.value;render();" style="margin-bottom:14px;">
   <div class="chiprow">
     <span class="chip ${fpFilter==='All'?'active':''}" onclick="fpFilter='All';render();">All</span>
@@ -2560,14 +2660,7 @@ function pageFlashpoints(){
     ${items.length? items.slice().reverse().map(f=>`
       <div class="list-row">
         <span onclick="toggleStar('${f.id}')" style="cursor:pointer;color:${f.starred?'var(--amber)':'var(--line)'};font-size:18px;">★</span>
-        <div style="flex:1;">
-          <span class="badge" style="background:${SUBJECTS[f.subject].color}22;color:${SUBJECTS[f.subject].color}">${f.subject}</span> ${f.chapter?` · ${f.chapter}`:''}<br>
-          ${fpRecallMode && !revealedFP.has(f.id)? `
-            <div class="fp-blur-wrap">
-              <div class="fp-blur-text">${f.text}</div>
-              <button class="btn sm fp-reveal-btn" onclick="revealFP('${f.id}')">✍️ I have scribbled down my answer — reveal</button>
-            </div>` : f.text}
-        </div>
+        <div style="flex:1;"><span class="badge" style="background:${SUBJECTS[f.subject].color}22;color:${SUBJECTS[f.subject].color}">${f.subject}</span> ${f.chapter?` · ${f.chapter}`:''}<br>${f.text}</div>
       </div>`).join('') : `<div class="empty"><div class="big">⚡</div><h3>No flashpoints yet</h3><p>Capture key points, formulas and exam traps as you study.</p></div>`}
   </div>`;
 }
@@ -2951,21 +3044,17 @@ function pageSettings(){
     <button class="btn" onclick="saveWellnessSettings()" style="grid-column:1/-1;">Save wellness settings</button>
   </div>
 
-  <div class="section-title">Revision strategy <span class="hint">default: Spaced Repetition</span></div>
-  <div class="card" style="display:flex;flex-direction:column;gap:10px;">
-    ${Object.entries(REVISION_STRATEGIES).map(([id,strat])=>`
-      <label class="rev-strat-opt ${s.revisionStrategy===id?'active':''}">
-        <input type="radio" name="revStrat" value="${id}" ${s.revisionStrategy===id?'checked':''} onchange="setRevisionStrategy('${id}')" style="margin-top:3px;">
-        <div>
-          <div style="font-weight:700;font-size:13.5px;">${strat.label} <span class="hint">${strat.short}</span></div>
-          <div style="font-size:12px;color:var(--sub);margin-top:2px;">${strat.desc}</div>
-        </div>
-      </label>`).join('')}
-  </div>
-  <div class="card two-col" style="margin-top:10px;">
-    <div class="field"><label class="field-label">Advanced: interval multiplier</label><input type="number" id="revMult" min="0.25" step="0.25" value="${s.revisionIntervalMultiplier||1}"></div>
-    <p class="hint" style="grid-column:1/-1;margin:-4px 0 4px;">1 = normal speed. 0.5 = review twice as often. 2 = half as often. Applies on top of whichever strategy is selected above.</p>
-    <button class="btn" style="grid-column:1/-1;" onclick="saveRevisionMultiplier()">Save</button>
+  <div class="section-title">Revision schedule <span class="hint">spaced repetition</span></div>
+  <div class="card">
+    <p class="hint" style="margin:0 0 10px;">The revision clock starts the moment you log <b>any</b> session for a chapter — live timer or Log past session — not when you tick the syllabus checkbox. Each stage fires this many days after that first session; stage 5 is your mastery pass. Default follows the standard 1-3-7-14-30 spaced-repetition cheat sheet.</p>
+    <div class="two-col">
+      <div class="field"><label class="field-label">Stage 1 (days)</label><input type="number" id="revS1" min="1" value="${revisionOffsets()[0]}"></div>
+      <div class="field"><label class="field-label">Stage 2 (days)</label><input type="number" id="revS2" min="1" value="${revisionOffsets()[1]}"></div>
+      <div class="field"><label class="field-label">Stage 3 (days)</label><input type="number" id="revS3" min="1" value="${revisionOffsets()[2]}"></div>
+      <div class="field"><label class="field-label">Stage 4 (days)</label><input type="number" id="revS4" min="1" value="${revisionOffsets()[3]}"></div>
+      <div class="field"><label class="field-label">Stage 5 (days · mastery)</label><input type="number" id="revS5" min="1" value="${revisionOffsets()[4]}"></div>
+    </div>
+    <button class="btn" style="width:100%;margin-top:10px;" onclick="saveRevisionOffsets()">Save schedule</button>
   </div>
 
   <div class="section-title">Security</div>
@@ -3061,15 +3150,14 @@ function saveWellnessSettings(){
   state.settings.breakReminderMin = parseInt(document.getElementById('stBreakMin').value)||0;
   save(); toast('Wellness settings saved');
 }
-function setRevisionStrategy(id){
-  if(!REVISION_STRATEGIES[id]) return;
-  state.settings.revisionStrategy = id;
-  save(); toast('Revision strategy set to ' + REVISION_STRATEGIES[id].label); render();
-}
-function saveRevisionMultiplier(){
-  const v = parseFloat(document.getElementById('revMult').value);
-  state.settings.revisionIntervalMultiplier = (v && v>0)? v : 1;
-  save(); toast('Saved');
+function saveRevisionOffsets(){
+  const defaults = [1,3,7,14,30];
+  const vals = ['revS1','revS2','revS3','revS4','revS5'].map((id,i)=> Math.max(1, parseInt(document.getElementById(id).value)||defaults[i]));
+  for(let i=1;i<vals.length;i++){ if(vals[i]<=vals[i-1]) vals[i] = vals[i-1]+1; } // keep strictly increasing
+  state.settings.revisionOffsets = vals;
+  // re-derive current_stage/next_review_date for every chapter under the new rule immediately
+  SUBJECT_KEYS.forEach(k=> state.chapters[k].forEach(c=> refreshRevisionSchedule(c)));
+  save(); toast('Schedule saved — ' + revisionScheduleLabel()); render();
 }
 function exportBackup(){
   const ok = triggerDownload('ca-karo-backup.json', JSON.stringify(state,null,2), 'application/json');
@@ -3251,6 +3339,7 @@ function onPinInput(val){
     }
   }
 }
+
 
 restoreActiveSessionOnLoad();
 if(needsUnlock()){
