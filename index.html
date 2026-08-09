@@ -196,13 +196,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
      the main cause of the janky mobile feel. Force 16px only on touch-width screens so desktop
      keeps its tighter 14px look. */
   input[type=text],input[type=number],input[type=date],select,textarea{font-size:16px;}
-  .hw-rev-split{grid-template-columns:1fr;}
 }
 /* ---------- HOMEWORK + REVISION SPLIT PANEL (replaces the old "In progress" tab) ---------- */
 .hw-rev-split{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid var(--violet);border-radius:16px;overflow:hidden;margin-bottom:16px;}
 .hw-rev-col{background:var(--card);padding:14px 16px;min-width:0;}
 .hw-rev-col+.hw-rev-col{border-left:1px solid var(--line);}
-@media(max-width:900px){.hw-rev-col+.hw-rev-col{border-left:none;border-top:1px solid var(--line);}}
+@media(max-width:900px){
+  .hw-rev-split{grid-template-columns:1fr;}
+  .hw-rev-col+.hw-rev-col{border-left:none;border-top:1px solid var(--line);}
+}
 .hw-rev-hd{font-size:12.5px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .hw-rev-row{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);}
 .hw-rev-row:last-child{border-bottom:none;}
@@ -968,7 +970,7 @@ const ROUTES = [
   {id:'finalrev', label:'Exam Countdown Plan', icon:'🏁', group:'plan'},
   {id:'strategy', label:'Strategy', icon:'🧠', group:'plan'},
   {id:'flashpoints', label:'Flashpoints', icon:'⚡', group:'reference'},
-  {id:'timeline', label:'Timeline', icon:'📆', group:'reference'},
+  {id:'timeline', label:'History', icon:'📆', group:'reference'},
   {id:'settings', label:'Settings', icon:'⚙️', group:'reference'}
 ];
 const NAV_GROUP_LABELS = {track:'Track', plan:'Plan', reference:'Reference'};
@@ -2461,7 +2463,10 @@ function todoCardHTML(){
       ${revBody}
     </div>
   </div>
-  <div style="text-align:right;margin:-8px 0 16px;"><a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:12.5px;" onclick="go('revisions')">🗓️ Open revision calendar →</a></div>`;
+  <div style="display:flex;justify-content:flex-end;gap:16px;flex-wrap:wrap;margin:-8px 0 16px;">
+    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:12.5px;" onclick="go('timeline')">📜 View past session &amp; lecture history →</a>
+    <a style="cursor:pointer;color:var(--violet-deep);font-weight:700;font-size:12.5px;" onclick="go('revisions')">🗓️ Open revision calendar →</a>
+  </div>`;
 }
 /* "Add to phone" — generates a standard .ics calendar file for the homework's due date.
    Opening it prompts the phone's Calendar/Reminders app to add an event — works fully
@@ -2689,17 +2694,35 @@ function exportFlashpoints(){
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='flashpoints.csv'; a.click();
 }
 
-/* ---------- TIMELINE ---------- */
+/* ---------- TIMELINE / HISTORY (past sessions & lectures) ---------- */
+let tlSubjectFilter = 'all';
+let tlActivityFilter = 'all';
+function tlSetSubject(k){ tlSubjectFilter=k; render(); }
+function tlSetActivity(a){ tlActivityFilter=a; render(); }
 function pageTimeline(){
+  let sessions = state.sessions.slice();
+  if(tlSubjectFilter!=='all') sessions = sessions.filter(s=>s.subject===tlSubjectFilter);
+  if(tlActivityFilter!=='all') sessions = sessions.filter(s=>s.activity===tlActivityFilter);
+
   const byDay = {};
-  state.sessions.forEach(s=>{ const d=s.start.slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
+  sessions.forEach(s=>{ const d=s.start.slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
   const days = Object.keys(byDay).sort().reverse();
+  const keys = activeSubjectKeys();
+
   return `
-  <div class="topbar"><div class="greet"><h1>Timeline</h1><p>Every session placed by time of day. Length = real study time.</p></div></div>
+  <div class="topbar"><div class="greet"><h1>History</h1><p>Every past session and lecture, placed by time of day. Length = real study time.</p></div></div>
+  <div class="chiprow">
+    <span class="chip ${tlSubjectFilter==='all'?'active':''}" onclick="tlSetSubject('all')">All subjects</span>
+    ${keys.map(k=>`<span class="chip ${tlSubjectFilter===k?'active':''}" onclick="tlSetSubject('${k}')"><span class="dot" style="background:${SUBJECTS[k].color}"></span>${k}</span>`).join('')}
+  </div>
+  <div class="chiprow" style="margin-top:-6px;">
+    <span class="chip ${tlActivityFilter==='all'?'active':''}" onclick="tlSetActivity('all')">All activities</span>
+    ${ACTIVITIES.map(a=>`<span class="chip ${tlActivityFilter===a.id?'active':''}" onclick="tlSetActivity('${a.id}')">${a.icon} ${a.label}</span>`).join('')}
+  </div>
   ${days.length? days.map(d=>`
     <div class="section-title" style="margin:20px 0 8px;">${fmtDate(d)} <span class="hint">${minToHM(byDay[d].reduce((s,x)=>s+(x.durationMin||0),0))}</span></div>
     <div class="card">${byDay[d].sort((a,b)=>a.start.localeCompare(b.start)).map(sessionRowHTML).join('')}</div>
-  `).join('') : `<div class="empty"><div class="big">📆</div><h3>No sessions yet</h3><p>Start one from the Session tab.</p></div>`}
+  `).join('') : `<div class="empty"><div class="big">📆</div><h3>No sessions yet</h3><p>${state.sessions.length? 'Nothing matches this filter.' : 'Start one from the Session tab.'}</p></div>`}
   `;
 }
 
