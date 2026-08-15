@@ -317,7 +317,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--violet);}
 .hw-pending-chip{width:min(230px,55%);display:flex;align-items:center;gap:9px;padding:10px 12px;margin-bottom:14px;cursor:pointer;}
 .hw-pending-badge{color:#fff;font-weight:800;font-size:12px;min-width:24px;height:24px;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:0 7px;flex-shrink:0;}
 .rev-cal-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;margin-bottom:4px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;}
-.rev-cal-day{flex:0 0 auto;width:56px;min-height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 4px;scroll-snap-align:start;position:relative;}
+.rev-cal-day{flex:0 0 auto;width:56px;min-height:64px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 4px;scroll-snap-align:start;position:relative;cursor:pointer;transition:transform .1s;}
+.rev-cal-day:active{transform:scale(0.94);}
+@media(max-width:420px){.rev-cal-day{width:48px;min-height:58px;}}
 .rev-cal-dow{font-size:9.5px;font-weight:700;text-transform:uppercase;color:var(--sub);letter-spacing:.03em;}
 .rev-cal-num{font-size:16px;font-weight:800;font-family:'Fredoka',sans-serif;}
 .rev-cal-badge{font-size:11px;font-weight:800;background:var(--violet-soft);color:var(--violet-deep);border-radius:8px;padding:1px 6px;}
@@ -700,6 +702,8 @@ function defaultState(){
     flashpoints:[], // {id,subject,chapter,text,starred}
     homework:[], // {id,date,subject,topic,questionRange,totalQuestions,completedQuestions,notes,status}
     goals: GOALS_MILESTONES.map(()=>false),
+    customGoals:[], // {id,text,done,targetDate,createdDate} — user-defined goals, in addition to the fixed milestone checklist
+    revisionHistory:[], // {id,date,subject,chapterId,chapterName,stage} — one entry per revision actually marked done, newest last
     finalRevPasses:3,
     lastRevisionPromptDate:null,
     lastHWPromptDate:null,
@@ -779,6 +783,8 @@ function migrateState(parsed){
   });
   if(merged.lastHWPromptDate===undefined) merged.lastHWPromptDate = null;
   if(!merged.goals || merged.goals.length!==GOALS_MILESTONES.length) merged.goals = GOALS_MILESTONES.map((_,i)=> (merged.goals&&merged.goals[i]) || false);
+  if(!merged.customGoals) merged.customGoals = [];
+  if(!merged.revisionHistory) merged.revisionHistory = [];
   // Discard any activeSession that doesn't have a valid timestamp anchor — this catches
   // leftover data from older versions of the app (before the timer was rebuilt on real
   // timestamps) that would otherwise restore as a permanently frozen "00:00:00" timer.
@@ -2188,8 +2194,25 @@ function hwEntryCardHTML(e){
   const pct = total>0? Math.round(100*comp/total) : 0;
   const isEdit = hwEditId===e.id;
   if(isEdit){
+    const chs = state.chapters[e.subject]||[];
     return `<div class="hw-card">
-      <div class="field"><label class="field-label">Completed questions</label><input type="number" id="hwEditComp_${e.id}" value="${comp}" min="0" max="${total||999}"></div>
+      <div class="two-col">
+        <div class="field"><label class="field-label">Subject</label><select id="hwEditSubject_${e.id}" onchange="onHWEditSubjectChange('${e.id}')">${activeSubjectKeys().map(k=>`<option value="${k}" ${k===e.subject?'selected':''}>${SUBJECTS[k].name}</option>`).join('')}</select></div>
+        <div class="field"><label class="field-label">Due date</label><input type="date" id="hwEditDue_${e.id}" value="${e.dueDate||''}"></div>
+      </div>
+      <div class="field"><label class="field-label">Chapter <span class="hint">optional</span></label>
+        <select id="hwEditChapter_${e.id}">
+          <option value="">— choose a chapter (optional) —</option>
+          ${chs.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}" ${c.name===e.chapter?'selected':''}>${c.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label class="field-label">Topic</label><textarea class="topic-textarea" id="hwEditTopic_${e.id}" oninput="autoGrow(this)">${escapeHtml(e.topic)}</textarea></div>
+      <div class="field"><label class="field-label">Question range</label><input type="text" id="hwEditQR_${e.id}" class="hwf-qr-input" value="${escapeHtml(e.questionRange||'')}" placeholder="e.g. Q1–5, Q7"></div>
+      <div class="two-col">
+        <div class="field"><label class="field-label">Total questions</label><input type="number" id="hwEditTotal_${e.id}" value="${total||''}" min="0" placeholder="0"></div>
+        <div class="field"><label class="field-label">Completed</label><input type="number" id="hwEditComp_${e.id}" value="${comp}" min="0"></div>
+      </div>
+      <div class="field"><label class="field-label">Notes (optional)</label><textarea class="topic-textarea" id="hwEditNotes_${e.id}" oninput="autoGrow(this)">${escapeHtml(e.notes||'')}</textarea></div>
       <div style="display:flex;gap:8px;">
         <button class="btn sm" onclick="hwSaveEdit('${e.id}')">Save</button>
         <button class="btn sm outline" onclick="hwEditId=null;render();">Cancel</button>
@@ -2217,7 +2240,7 @@ function hwEntryCardHTML(e){
     <div class="hw-actions">
       ${status!=='done'? `<button class="btn sm" onclick="hwMarkDone('${e.id}')">✓ Mark done</button>`:''}
       ${status!=='done'&&e.dueDate? `<button class="btn sm ghost" onclick="addHWToPhone('${e.id}')">📅 Add to phone</button>`:''}
-      <button class="btn sm ghost" onclick="hwEditId='${e.id}';render();">Update Qs</button>
+      <button class="btn sm ghost" onclick="hwEditId='${e.id}';render();">✏️ Edit</button>
       <button class="btn sm warn" onclick="hwDelete('${e.id}')">Delete</button>
     </div>
   </div>`;
@@ -2229,10 +2252,33 @@ function hwMarkDone(id){
   e.completedDate = todayISO();
   save(); toast('Marked complete — recorded today 🎉'); render();
 }
+/* Chapter dropdown in the edit card is scoped to whichever subject is picked, same pattern
+   as onHWSubjectChange() for the "add" form — re-populates in place so nothing else typed
+   in the edit card gets wiped. */
+function onHWEditSubjectChange(id){
+  const sub = document.getElementById('hwEditSubject_'+id).value;
+  const sel = document.getElementById('hwEditChapter_'+id);
+  if(!sel) return;
+  const chs = state.chapters[sub]||[];
+  sel.innerHTML = `<option value="">— choose a chapter (optional) —</option>` + chs.map(c=>`<option value="${c.name.replace(/"/g,'&quot;')}">${c.name}</option>`).join('');
+}
+/* Full edit — topic, subject, chapter, question range, totals, due date and notes are all
+   editable here, not just the completed-question count. Add-more-topics-and-chapters just
+   means: change the chapter/topic this entry points to, same as when it was first logged. */
 function hwSaveEdit(id){
   const e = state.homework.find(x=>x.id===id);
   const wasDone = hwStatus(e)==='done';
+  const topic = document.getElementById('hwEditTopic_'+id).value.trim();
+  if(!topic){ toast("Topic can't be empty"); return; }
+  e.subject = document.getElementById('hwEditSubject_'+id).value;
+  const chapterEl = document.getElementById('hwEditChapter_'+id);
+  e.chapter = chapterEl && chapterEl.value ? chapterEl.value : null;
+  e.topic = topic;
+  e.dueDate = document.getElementById('hwEditDue_'+id).value || null;
+  e.questionRange = document.getElementById('hwEditQR_'+id).value.trim();
+  e.totalQuestions = parseInt(document.getElementById('hwEditTotal_'+id).value)||0;
   e.completedQuestions = parseInt(document.getElementById('hwEditComp_'+id).value)||0;
+  e.notes = document.getElementById('hwEditNotes_'+id).value.trim();
   const nowDone = hwStatus(e)==='done';
   if(nowDone && !wasDone){
     e.completedDate = todayISO(); // mark exactly which date this homework was actually finished
@@ -2271,11 +2317,70 @@ function pageGoals(){
         <div class="goal-cbx ${state.goals[i]?'on':''}" onclick="toggleGoal(${i})">${state.goals[i]?'<span class="ch-tick">✓</span>':''}</div>
         <div class="goal-title ${state.goals[i]?'done':''}">${g}</div>
       </div>`).join('')}
+  </div>
+
+  <div class="section-title" style="margin-top:18px;">Your own goals <span class="hint">set and track anything you want</span></div>
+  <div class="card">
+    <div class="field"><label class="field-label">New goal</label><textarea class="topic-textarea" id="cgText" placeholder="e.g. Finish all Costing RTPs by 15 Sep" oninput="autoGrow(this)"></textarea></div>
+    <div class="field"><label class="field-label">Target date <span class="hint">optional</span></label><input type="date" id="cgDate"></div>
+    <button class="btn" style="width:100%;" onclick="addCustomGoal()">+ Add goal</button>
+  </div>
+  <div class="card" style="margin-top:10px;">
+    ${state.customGoals.length? state.customGoals.slice().reverse().map(g=>{
+      const isEdit = customGoalEditId===g.id;
+      if(isEdit){
+        return `<div class="goal-row" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <textarea class="topic-textarea" id="cgEditText_${g.id}" oninput="autoGrow(this)">${escapeHtml(g.text)}</textarea>
+          <input type="date" id="cgEditDate_${g.id}" value="${g.targetDate||''}">
+          <div style="display:flex;gap:8px;">
+            <button class="btn sm" onclick="saveCustomGoalEdit('${g.id}')">Save</button>
+            <button class="btn sm outline" onclick="customGoalEditId=null;render();">Cancel</button>
+            <button class="btn sm warn" style="margin-left:auto;" onclick="deleteCustomGoal('${g.id}')">Delete</button>
+          </div>
+        </div>`;
+      }
+      const overdue = g.targetDate && !g.done && g.targetDate<todayISO();
+      return `<div class="goal-row">
+        <div class="goal-cbx ${g.done?'on':''}" onclick="toggleCustomGoal('${g.id}')">${g.done?'<span class="ch-tick">✓</span>':''}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="goal-title ${g.done?'done':''}">${escapeHtml(g.text)}</div>
+          ${g.targetDate? `<div style="font-size:11px;color:${overdue?'#D64545':'var(--sub)'};font-weight:${overdue?'700':'400'};margin-top:2px;">${overdue?'Overdue since':'Target'} ${fmtDate(g.targetDate)}</div>`:''}
+        </div>
+        <button class="btn sm ghost" onclick="customGoalEditId='${g.id}';render();">✏️</button>
+      </div>`;
+    }).join('') : `<div class="empty" style="padding:16px 0;">No custom goals yet — add your own above.</div>`}
   </div>`;
 }
 function toggleGoal(i){
   state.goals[i] = !state.goals[i];
   save(); render();
+}
+let customGoalEditId = null;
+function addCustomGoal(){
+  const text = document.getElementById('cgText').value.trim();
+  if(!text){ toast('Add some goal text first'); return; }
+  const targetDate = document.getElementById('cgDate').value || null;
+  state.customGoals.push({id:uid(), text, done:false, targetDate, createdDate:todayISO()});
+  save(); toast('Goal added'); render();
+}
+function toggleCustomGoal(id){
+  const g = state.customGoals.find(x=>x.id===id);
+  g.done = !g.done;
+  save(); render();
+}
+function saveCustomGoalEdit(id){
+  const g = state.customGoals.find(x=>x.id===id);
+  const text = document.getElementById('cgEditText_'+id).value.trim();
+  if(!text){ toast("Goal text can't be empty"); return; }
+  g.text = text;
+  g.targetDate = document.getElementById('cgEditDate_'+id).value || null;
+  customGoalEditId = null;
+  save(); toast('Goal updated'); render();
+}
+function deleteCustomGoal(id){
+  state.customGoals = state.customGoals.filter(x=>x.id!==id);
+  customGoalEditId = null;
+  save(); toast('Goal deleted'); render();
 }
 
 /* ---------- REVISIONS ---------- */
@@ -2285,9 +2390,9 @@ function revisionCalendarHTML(){
   const schedule = revisionScheduleInRange(today, 14);
   const days = Object.keys(schedule).sort();
   return `
-  <div class="section-title">🗓️ Revision calendar <span class="hint">next 14 days</span></div>
+  <div class="section-title">🗓️ Revision calendar <span class="hint">next 14 days — tap any day to see what's on it</span></div>
   <div class="rev-cal-strip">
-    ${overdueCount? `<div class="rev-cal-day overdue"><div class="rev-cal-dow">Overdue</div><div class="rev-cal-num">${overdueCount}</div></div>`:''}
+    ${overdueCount? `<div class="rev-cal-day overdue" onclick="openRevDayDetail('overdue')"><div class="rev-cal-dow">Overdue</div><div class="rev-cal-num">${overdueCount}</div></div>`:''}
     ${days.map(d=>{
       const items = schedule[d];
       const total = items.length;
@@ -2298,13 +2403,44 @@ function revisionCalendarHTML(){
       else if(doneCt===total) cls += ' done';
       else if(isToday) cls += ' today';
       const dt = new Date(d+'T00:00:00');
-      return `<div class="${cls}" title="${total} revision${total===1?'':'s'} scheduled">
+      return `<div class="${cls}" title="${total} revision${total===1?'':'s'} scheduled" onclick="openRevDayDetail('${d}')">
         <div class="rev-cal-dow">${dt.toLocaleDateString('en-GB',{weekday:'short'})}</div>
         <div class="rev-cal-num">${dt.getDate()}</div>
         ${total? `<div class="rev-cal-badge">${doneCt===total? '✓' : total}</div>` : ''}
       </div>`;
     }).join('')}
   </div>`;
+}
+/* Tapping a calendar day used to do nothing — this opens a modal listing exactly which
+   chapters/topics are scheduled for that date (or overdue, for the red "Overdue" cell), with
+   the same mark-done / start-timer actions available from the Due list. */
+function openRevDayDetail(dateKey){
+  const today = todayISO();
+  let title, items;
+  if(dateKey==='overdue'){
+    title = 'Overdue revisions';
+    items = revisionsDue().filter(r=>r.dueDate<today).map(r=>({subject:r.subject, chapter:r.chapter, stage:r.stage, done:false, dueDate:r.dueDate}));
+  } else {
+    const dt = new Date(dateKey+'T00:00:00');
+    title = dt.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'short',year:'numeric'}) + (dateKey===today? ' (today)':'');
+    const day = revisionScheduleInRange(dateKey,1)[dateKey] || [];
+    items = day.map(i=>({subject:i.subject, chapter:i.chapter, stage:i.stage, done:i.done, dueDate:dateKey}));
+  }
+  const rows = items.length? items.map(i=>`
+    <div class="hw-rev-row">
+      <span class="hw-subj-dot" style="background:${SUBJECTS[i.subject].color};margin-top:3px;"></span>
+      <div style="flex:1;min-width:0;">
+        <div class="hw-meta-small">${i.subject}</div>
+        <div style="font-size:12.5px;font-weight:700;">${i.chapter.name}</div>
+        <div style="font-size:11px;color:var(--sub);margin-top:1px;">${stageDayLabel(i.stage)} revision${i.done? ' · <span style="color:#1D9C63;font-weight:700;">✓ done</span>':''}</div>
+      </div>
+      ${!i.done? `<button class="btn sm" onclick="completeRevision('${i.subject}','${i.chapter.id}',${i.stage});closeModal();openRevDayDetail('${dateKey}');">✓</button>`:''}
+    </div>`).join('')
+    : `<div class="empty" style="padding:16px 0;">Nothing scheduled on this day.</div>`;
+  openModal(`
+    <h3 style="margin:0 0 12px;">${title}</h3>
+    <div class="card" style="padding:6px 12px;">${rows}</div>
+  `);
 }
 let revSubjFilter = "All";
 let revView = "due"; // due | calendar
@@ -2370,6 +2506,7 @@ function pageRevisions(){
   <div class="chiprow" style="margin-bottom:6px;">
     <span class="chip ${revView==='due'?'active':''}" onclick="revSetView('due')">📋 Due</span>
     <span class="chip ${revView==='calendar'?'active':''}" onclick="revSetView('calendar')">🗓️ Calendar</span>
+    <span class="chip ${revView==='history'?'active':''}" onclick="revSetView('history')">📜 History</span>
   </div>
   <div class="chiprow">
     ${["All",...activeSubjectKeys()].map(s=>`<span class="chip ${revSubjFilter===s?'active':''}" onclick="revSetSubj('${s}')">${s}</span>`).join('')}
@@ -2378,6 +2515,12 @@ function pageRevisions(){
 
   if(revView==='calendar'){
     h += revisionCalendarHTML();
+    return h;
+  }
+  if(revView==='history'){
+    h += `<div class="section-title" style="margin-top:16px;">Revision history <span class="hint">every revision you've marked done, newest first</span></div>`;
+    h += revisionHistoryHTML();
+    return h;
   }
 
   h += `
@@ -2401,19 +2544,53 @@ function pageRevisions(){
   }
   return h;
 }
+/* Grouped by date, newest day first — every revision actually marked done via
+   completeRevision() lands here, so you can see what you revised and when, separately from
+   what's still scheduled. */
+function revisionHistoryHTML(){
+  const filt = h=> revSubjFilter==='All' || h.subject===revSubjFilter;
+  const hist = (state.revisionHistory||[]).filter(filt);
+  if(!hist.length){
+    return `<div class="empty" style="padding:24px 0;"><div class="big">📜</div><h3>No revisions logged yet</h3><p>Every time you mark a revision done, it's recorded here with the date, subject and stage.</p></div>`;
+  }
+  const grouped = {};
+  hist.forEach(h=>{ (grouped[h.date]=grouped[h.date]||[]).push(h); });
+  const dates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+  return dates.map(d=>`
+    <div class="section-title" style="margin:18px 0 8px;">${d===todayISO()?'Today':fmtDate(d)} <span class="hint">${grouped[d].length} revision${grouped[d].length===1?'':'s'}</span></div>
+    <div class="card">
+      ${grouped[d].slice().reverse().map(hh=>`<div class="list-row">
+        <span class="hw-subj-dot" style="background:${SUBJECTS[hh.subject]?SUBJECTS[hh.subject].color:'#999'}"></span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13px;">${hh.chapterName}</div>
+          <div style="font-size:11px;color:var(--sub);">${hh.subject} · ${stageDayLabel(hh.stage)} revision</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  `).join('');
+}
 function completeRevision(subj, chId, stage){
   const c = state.chapters[subj].find(x=>x.id===chId);
   if(!c.revStages) c.revStages = {};
   c.revStages[stage] = todayISO();
   refreshRevisionSchedule(c);
+  if(!state.revisionHistory) state.revisionHistory = [];
+  state.revisionHistory.push({id:uid(), date:todayISO(), subject:subj, chapterId:chId, chapterName:c.name, stage});
   save(); toast('Revision logged'); render();
 }
 /* ---------- SPACED-REPETITION AUTO REMINDER (day 1 → 3 → 7 → 30 method, configurable in Settings) ---------- */
 /* ---------- HOMEWORK DUE-DATE REMINDER ---------- */
+/* Any homework that's still pending belongs here — whether or not a due date was set.
+   Earlier this required e.dueDate to be present, which meant entries logged without a due
+   date (a totally normal thing to do — due date is optional in the form) silently never
+   appeared in the "Homework due" panel on Home or anywhere else that reads this list, even
+   though they were sitting there unfinished. Un-dated pending items now show up immediately
+   (labelled "No due date" — see hwRowHTML/hwEntryCardHTML), and items WITH a due date only
+   show once that date has arrived or passed, same as before. */
 function hwDueOrOverdue(){
   const today = todayISO();
-  return state.homework.filter(e=> e.dueDate && hwStatus(e)!=='done' && e.dueDate<=today)
-    .sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  return state.homework.filter(e=> hwStatus(e)!=='done' && (!e.dueDate || e.dueDate<=today))
+    .sort((a,b)=> (a.dueDate||today).localeCompare(b.dueDate||today));
 }
 function hwUpcoming(){
   const today = todayISO();
@@ -2825,6 +3002,69 @@ function trendChartSVG(numDays, withAxis){
     <text x="${w-pad}" y="${chartH+16}" font-size="10" fill="var(--sub)" text-anchor="end">Today</text>` : ''}
   </svg>`;
 }
+/* ---------- STUDY TREND — Day / Week / Month toggle ----------
+   Same idea as a fitness-tracker "trend" screen: one chart, three zoom levels. Day = last 30
+   days of daily minutes (as before). Week = last 12 weeks, each bar/point is that week's
+   total minutes. Month = last 6 calendar months, each point is that month's total minutes. */
+let dashTrendPeriod = 'day'; // day | week | month
+function setDashTrendPeriod(p){ dashTrendPeriod = p; render(); }
+function periodTrendData(period){
+  const map = sessionsByDate();
+  if(period==='week'){
+    const weeks = 12, pts = [];
+    for(let w=weeks-1; w>=0; w--){
+      let sum = 0;
+      for(let d=0; d<7; d++) sum += map[addDays(todayISO(), -(w*7+d))]||0;
+      pts.push(sum);
+    }
+    return {pts, startLabel:`${weeks}wk ago`, midLabel:`${Math.round(weeks/2)}wk ago`, endLabel:'This wk'};
+  }
+  if(period==='month'){
+    const months = 6, pts = [];
+    const now = new Date();
+    const monthKeys = [];
+    for(let m=months-1; m>=0; m--){
+      const d = new Date(now.getFullYear(), now.getMonth()-m, 1);
+      monthKeys.push(d.toISOString().slice(0,7));
+      pts.push(0);
+    }
+    Object.keys(map).forEach(dt=>{
+      const idx = monthKeys.indexOf(dt.slice(0,7));
+      if(idx>=0) pts[idx] += map[dt];
+    });
+    const firstD = new Date(now.getFullYear(), now.getMonth()-(months-1), 1);
+    const midD = new Date(now.getFullYear(), now.getMonth()-Math.floor(months/2), 1);
+    return {pts, startLabel: firstD.toLocaleDateString('en-GB',{month:'short'}), midLabel: midD.toLocaleDateString('en-GB',{month:'short'}), endLabel:'This mo'};
+  }
+  const numDays = 30, pts = [];
+  for(let i=numDays-1;i>=0;i--) pts.push(map[addDays(todayISO(),-i)]||0);
+  return {pts, startLabel: fmtDate(addDays(todayISO(),-(numDays-1))), midLabel: fmtDate(addDays(todayISO(),-Math.floor(numDays/2))), endLabel:'Today'};
+}
+function trendChartByPeriod(period){
+  const {pts,startLabel,midLabel,endLabel} = periodTrendData(period);
+  const w=680, h=110, pad=6, chartH=90;
+  const max = Math.max(1,...pts);
+  const stepX = pts.length>1? (w-2*pad)/(pts.length-1) : 0;
+  const coords = pts.map((v,i)=>{
+    const x = pad+i*stepX;
+    const y = chartH-pad-(v/max)*(chartH-2*pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const areaPath = `M${pad},${chartH-pad} L${coords.join(' L')} L${w-pad},${chartH-pad} Z`;
+  const totalLabel = minToHM(pts.reduce((s,v)=>s+v,0));
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:90px;display:block;">
+    <defs><linearGradient id="trendGradP" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--violet)" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="var(--violet)" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${areaPath}" fill="url(#trendGradP)"/>
+    <polyline points="${coords.join(' ')}" fill="none" stroke="var(--violet)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="${pad}" y="${chartH+16}" font-size="10" fill="var(--sub)" text-anchor="start">${startLabel}</text>
+    <text x="${w/2}" y="${chartH+16}" font-size="10" fill="var(--sub)" text-anchor="middle">${midLabel}</text>
+    <text x="${w-pad}" y="${chartH+16}" font-size="10" fill="var(--sub)" text-anchor="end">${endLabel}</text>
+    <text x="${w-pad}" y="14" font-size="11" font-weight="700" fill="var(--violet-deep)" text-anchor="end">${totalLabel} total</text>
+  </svg>`;
+}
 function pageDashboard(){
   const heat = [];
   for(let i=55;i>=0;i--){ const d=addDays(todayISO(),-i); heat.push({d, min: sessionsByDate()[d]||0}); }
@@ -2885,8 +3125,13 @@ function pageDashboard(){
     </div>`).join('')}
   </div>` : ''}
 
-  <div class="section-title">Study trend <span class="hint">last 30 days</span></div>
-  <div class="card">${trendChartSVG(30, true)}</div>
+  <div class="section-title">Study trend</div>
+  <div class="chiprow" style="margin-bottom:2px;">
+    <span class="chip ${dashTrendPeriod==='day'?'active':''}" onclick="setDashTrendPeriod('day')">Day</span>
+    <span class="chip ${dashTrendPeriod==='week'?'active':''}" onclick="setDashTrendPeriod('week')">Week</span>
+    <span class="chip ${dashTrendPeriod==='month'?'active':''}" onclick="setDashTrendPeriod('month')">Month</span>
+  </div>
+  <div class="card">${trendChartByPeriod(dashTrendPeriod)}</div>
 
   <div class="section-title">Group-wise completion</div>
   <div class="grid cols-2">
